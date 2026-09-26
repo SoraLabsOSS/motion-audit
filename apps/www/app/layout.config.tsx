@@ -1,5 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import { BookOpen } from "lucide-react";
+import { BookOpen, FlaskConical } from "lucide-react";
 
 /**
  * Shared layout configurations
@@ -21,6 +21,17 @@ export const baseOptions: BaseLayoutProps = {
       secondary: false,
       text: "Installation",
       url: "/docs/installation",
+    },
+    {
+      type: "separator",
+      name: "Methodology",
+      icon: <FlaskConical strokeWidth={2.5} />,
+      // biome-ignore lint/suspicious/noExplicitAny: custom separator layout item
+    } as any,
+    {
+      secondary: false,
+      text: "Introduction",
+      url: "/docs/methodology",
     },
   ],
 };

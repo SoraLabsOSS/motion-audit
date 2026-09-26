@@ -37,7 +37,7 @@ export const Footer = ({ lastUpdate }: { lastUpdate?: Date }) => {
             >
               Axyl
             </a>
-            . A motion-first component registry for React.
+            . A performance auditing toolkit for motion-heavy web interfaces.
           </p>
 
           {!isMobile && <Bunny className="mb-2" sleeping={isNightTime} />}

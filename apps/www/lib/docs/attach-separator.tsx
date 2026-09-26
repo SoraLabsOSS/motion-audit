@@ -8,6 +8,7 @@ import type { BuildPageTreeOptions } from "fumadocs-core/source";
 import {
   Code,
   Compass,
+  FlaskConical,
   Layers,
   LayoutTemplate,
   ListCollapse,
@@ -163,6 +164,15 @@ export const attachSeparator: BuildPageTreeOptions["attachSeparator"] = (
     }
     case "Guide": {
       node.name = <Separator icon={<Code strokeWidth={2.5} />} name="Guide" />;
+      break;
+    }
+    case "Methodology": {
+      node.name = (
+        <Separator
+          icon={<FlaskConical strokeWidth={2.5} />}
+          name="Methodology"
+        />
+      );
       break;
     }
     default: {
