@@ -1,9 +1,10 @@
 {
   "extends": "@workspace/typescript-config/react-library.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "strictNullChecks": true
+    "paths": {
+      "@workspace/ui/*": ["./src/*"]
+    }
   },
-  "include": ["src"],
+  "include": [".", "../../apps/www/components/banner.tsx"],
   "exclude": ["node_modules", "dist"]
 }

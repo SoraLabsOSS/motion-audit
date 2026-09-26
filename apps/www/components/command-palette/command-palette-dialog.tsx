@@ -1,0 +1,475 @@
+"use client";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@workspace/ui/components/ui/dialog";
+import { cn } from "@workspace/ui/lib/utils";
+import {
+  ArrowRight,
+  Bookmark,
+  BookOpen,
+  Box,
+  CircleArrowOutUpRight,
+  FileText,
+  Hash,
+  Monitor,
+  Moon,
+  Settings,
+  Sun,
+  X,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  isMarketingPath,
+  usePageTransition,
+} from "@/components/page-transition/page-transition-provider";
+import type {
+  CommandPaletteActionId,
+  CommandPaletteActionItem,
+  CommandPaletteGroup,
+  CommandPaletteIcon,
+} from "@/lib/command-palette/types";
+import {
+  getSearchResults,
+  matchesCommandQuery,
+  useCommandPaletteSearch,
+} from "@/lib/command-palette/use-command-palette-search";
+import { setThemeWithTransition } from "@/lib/theme/set-theme-with-transition";
+import { getUiSearchHint } from "@/lib/ui/ui-family";
+
+import {
+  CommandPaletteInputShortcut,
+  CommandPaletteShortcut,
+} from "./command-palette-shortcut";
+import {
+  COMMAND_LIST_HEIGHT_DURATION_MS,
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandGroupHighlight,
+  CommandHighlightItem,
+  CommandInput,
+  CommandList,
+  CommandSeparator,
+} from "./command-primitives";
+
+const THEME_ITEMS: CommandPaletteActionItem[] = [
+  {
+    action: "theme-light",
+    icon: "cog",
+    id: "action-theme-light",
+    label: "Light Mode",
+    searchValue: "Light Mode",
+  },
+  {
+    action: "theme-dark",
+    icon: "cog",
+    id: "action-theme-dark",
+    label: "Dark Mode",
+    searchValue: "Dark Mode",
+  },
+  {
+    action: "theme-system",
+    icon: "cog",
+    id: "action-theme-system",
+    label: "System Theme",
+    searchValue: "System Theme",
+  },
+];
+
+const THEME_GROUP: CommandPaletteGroup = {
+  id: "theme",
+  items: THEME_ITEMS,
+  label: "Theme",
+};
+
+function CommandPaletteIconGlyph({
+  icon,
+  className,
+}: {
+  icon: CommandPaletteIcon;
+  className?: string;
+}) {
+  const iconClassName = cn("mr-2 size-4 shrink-0", className);
+
+  switch (icon) {
+    case "book": {
+      return <BookOpen className={iconClassName} strokeWidth={1.5} />;
+    }
+    case "bookmark": {
+      return <Bookmark className={iconClassName} strokeWidth={1.5} />;
+    }
+    case "box": {
+      return <Box className={iconClassName} strokeWidth={1.5} />;
+    }
+    case "external": {
+      return (
+        <CircleArrowOutUpRight className={iconClassName} strokeWidth={1.5} />
+      );
+    }
+    case "settings": {
+      return <Settings className={iconClassName} strokeWidth={1.5} />;
+    }
+    default: {
+      return <ArrowRight className={iconClassName} strokeWidth={1.5} />;
+    }
+  }
+}
+
+function SearchResultIcon({ type }: { type: "heading" | "page" | "text" }) {
+  if (type === "page") {
+    return (
+      <FileText
+        className="size-6 shrink-0 rounded-sm border bg-muted p-0.5 text-muted-foreground shadow-sm"
+        strokeWidth={1.5}
+      />
+    );
+  }
+
+  if (type === "heading") {
+    return (
+      <Hash
+        className="size-4 shrink-0 text-muted-foreground"
+        strokeWidth={1.5}
+      />
+    );
+  }
+
+  return null;
+}
+
+interface SearchResultItem {
+  content: string;
+  id: string;
+  type: "heading" | "page" | "text";
+  url: string;
+}
+
+function CommandSearchResultItem({
+  onSelect,
+  result,
+}: {
+  onSelect: () => void;
+  result: SearchResultItem;
+}) {
+  const isPage = result.type === "page";
+  const isNested = !isPage;
+  const hint = getUiSearchHint(result.url, result.content);
+
+  return (
+    <CommandHighlightItem
+      className={cn(
+        "gap-2",
+        isNested && "ps-8 sm:ps-8",
+        isPage && "font-medium",
+        isNested && result.type === "text" && "text-popover-foreground/80",
+        isNested && result.type === "heading" && "font-medium"
+      )}
+      onSelect={onSelect}
+      value={result.id}
+    >
+      {isNested ? (
+        <div
+          aria-hidden
+          className="absolute inset-s-4.5 inset-y-0 w-px bg-border"
+        />
+      ) : null}
+      <SearchResultIcon type={result.type} />
+      <span className="min-w-0 flex-1 truncate">{result.content}</span>
+      {hint ? (
+        <span className="ml-auto shrink-0 text-muted-foreground text-xs">
+          {hint}
+        </span>
+      ) : null}
+    </CommandHighlightItem>
+  );
+}
+
+function ThemeActionIcon({ action }: { action: CommandPaletteActionId }) {
+  const className = "mr-2 size-4 shrink-0";
+
+  switch (action) {
+    case "theme-light": {
+      return <Sun className={className} strokeWidth={1.5} />;
+    }
+    case "theme-dark": {
+      return <Moon className={className} strokeWidth={1.5} />;
+    }
+    case "theme-system": {
+      return <Monitor className={className} strokeWidth={1.5} />;
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function filterGroupsByQuery(
+  groups: CommandPaletteGroup[],
+  query: string
+): CommandPaletteGroup[] {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        matchesCommandQuery(item.searchValue, query)
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+interface CommandPaletteDialogProps {
+  groups: CommandPaletteGroup[];
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}
+
+export function CommandPaletteDialog({
+  open,
+  onOpenChange,
+  groups,
+}: CommandPaletteDialogProps) {
+  const router = useRouter();
+  const { transitionTo } = usePageTransition();
+  const { setTheme } = useTheme();
+  const { search, setSearch, query } = useCommandPaletteSearch();
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollLocked, setScrollLocked] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+      setScrollLocked(false);
+      return;
+    }
+
+    setScrollLocked(true);
+    listRef.current?.scrollTo({ top: 0 });
+
+    const timeout = window.setTimeout(() => {
+      setScrollLocked(false);
+      listRef.current?.scrollTo({ top: 0 });
+    }, COMMAND_LIST_HEIGHT_DURATION_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [open, setSearch]);
+
+  const runAction = useCallback(
+    (action: CommandPaletteActionId) => {
+      switch (action) {
+        case "theme-dark": {
+          setThemeWithTransition(setTheme, "dark");
+          break;
+        }
+        case "theme-light": {
+          setThemeWithTransition(setTheme, "light");
+          break;
+        }
+        case "theme-system": {
+          setThemeWithTransition(setTheme, "system");
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+    },
+    [setTheme]
+  );
+
+  const navigate = useCallback(
+    (href: string) => {
+      onOpenChange(false);
+      if (isMarketingPath(href)) {
+        transitionTo(href, "commercial").catch((error) => {
+          console.error("Command palette navigation failed", error);
+        });
+      } else {
+        router.push(href);
+      }
+    },
+    [onOpenChange, router, transitionTo]
+  );
+
+  const allGroups = useMemo(() => {
+    const navigationIndex = groups.findIndex(
+      (group) => group.id === "navigation"
+    );
+    const insertAt =
+      navigationIndex === -1 ? groups.length : navigationIndex + 1;
+
+    const utilityGroups: CommandPaletteGroup[] = [THEME_GROUP];
+
+    const result = [...groups];
+    result.splice(insertAt, 0, ...utilityGroups);
+    return result;
+  }, [groups]);
+
+  const hasQuery = search.trim().length > 0;
+  const searchResults = getSearchResults(query.data);
+  const filteredGroups = useMemo(
+    () => (hasQuery ? filterGroupsByQuery(allGroups, search) : allGroups),
+    [allGroups, hasQuery, search]
+  );
+
+  const showLoadingState =
+    hasQuery &&
+    query.isLoading &&
+    searchResults.length === 0 &&
+    filteredGroups.length === 0;
+
+  const showEmptyState =
+    hasQuery &&
+    !query.isLoading &&
+    searchResults.length === 0 &&
+    filteredGroups.length === 0;
+
+  const renderPaletteItem = (
+    entry: CommandPaletteGroup["items"][number],
+    isThemeAction: boolean
+  ) => (
+    <CommandHighlightItem
+      key={entry.id}
+      onSelect={() => {
+        if (isThemeAction) {
+          runAction((entry as CommandPaletteActionItem).action);
+          return;
+        }
+
+        if ("href" in entry && entry.href) {
+          navigate(entry.href);
+        }
+      }}
+      value={entry.searchValue}
+    >
+      {isThemeAction ? (
+        <ThemeActionIcon action={(entry as CommandPaletteActionItem).action} />
+      ) : (
+        <CommandPaletteIconGlyph icon={entry.icon} />
+      )}
+      <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+      {"hint" in entry && entry.hint ? (
+        <span className="ml-auto shrink-0 text-muted-foreground text-xs">
+          {entry.hint}
+        </span>
+      ) : null}
+      {"shortcut" in entry && entry.shortcut ? (
+        <CommandPaletteShortcut keys={entry.shortcut} />
+      ) : null}
+    </CommandHighlightItem>
+  );
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent
+        className={cn(
+          "flex max-h-[85dvh] w-full max-w-xl flex-col gap-0 overflow-hidden rounded-2xl border bg-popover p-0 shadow-lg outline-none",
+          "md:max-h-none"
+        )}
+        containerClassName="z-[1001] items-start pt-[max(1rem,10dvh)] md:pt-[max(1rem,calc(50vh-220px))]"
+        initialFocus={() =>
+          document.querySelector<HTMLElement>('[data-slot="command-input"]')
+        }
+        overlayClassName="z-[1000]"
+        showCloseButton={false}
+      >
+        <DialogTitle className="sr-only">
+          Search components, docs, blog, and actions
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Search and navigate to components, documentation, blog posts, and
+          quick actions.
+        </DialogDescription>
+
+        <Command className="relative min-w-0" loop shouldFilter={!hasQuery}>
+          <CommandInput
+            onValueChange={setSearch}
+            placeholder="Search..."
+            suffix={
+              <span className="inline-flex items-center gap-1">
+                <CommandPaletteInputShortcut />
+                <button
+                  aria-label="Close search"
+                  className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent sm:hidden"
+                  onClick={() => onOpenChange(false)}
+                  type="button"
+                >
+                  <X className="size-4" strokeWidth={1.5} />
+                </button>
+              </span>
+            }
+            value={search}
+          />
+
+          <CommandList ref={listRef} scrollLocked={scrollLocked}>
+            {showLoadingState ? (
+              <div className="py-8 text-center text-muted-foreground text-sm">
+                Searching...
+              </div>
+            ) : null}
+
+            {showEmptyState ? (
+              <CommandEmpty>No results found.</CommandEmpty>
+            ) : null}
+
+            {showLoadingState || showEmptyState ? null : (
+              <>
+                {hasQuery && searchResults.length > 0 ? (
+                  <CommandGroup heading="Results">
+                    <CommandGroupHighlight
+                      deferMeasure={scrollLocked}
+                      values={searchResults.map((result) => result.id)}
+                    >
+                      {searchResults.map((result) => (
+                        <CommandSearchResultItem
+                          key={result.id}
+                          onSelect={() => navigate(result.url)}
+                          result={result}
+                        />
+                      ))}
+                    </CommandGroupHighlight>
+                  </CommandGroup>
+                ) : null}
+
+                {hasQuery &&
+                searchResults.length > 0 &&
+                filteredGroups.length > 0 ? (
+                  <CommandSeparator />
+                ) : null}
+
+                {filteredGroups.map((group, groupIndex) => (
+                  <Fragment key={group.id}>
+                    {groupIndex > 0 ? <CommandSeparator /> : null}
+                    <CommandGroup heading={group.label}>
+                      <CommandGroupHighlight
+                        deferMeasure={scrollLocked}
+                        values={group.items.map((entry) => entry.searchValue)}
+                      >
+                        {group.items.map((entry) =>
+                          renderPaletteItem(entry, "action" in entry)
+                        )}
+                      </CommandGroupHighlight>
+                    </CommandGroup>
+                  </Fragment>
+                ))}
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
+  );
+}

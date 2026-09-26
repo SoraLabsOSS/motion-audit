@@ -1,0 +1,309 @@
+"use client";
+
+import GithubIcon from "@workspace/ui/components/icons/github-icon";
+import {
+  Highlight,
+  HighlightItem,
+  useHighlight,
+} from "@workspace/ui/components/primitives/effects/highlight";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@workspace/ui/components/ui/navigation-menu";
+import { ProgressiveBlur } from "@workspace/ui/components/ui/progressive-blur";
+import { cn } from "@workspace/ui/lib/utils";
+import { buttonVariants } from "fumadocs-ui/components/ui/button";
+import { Navbar } from "fumadocs-ui/layouts/docs-client";
+import { useSidebar } from "fumadocs-ui/provider";
+import { ArrowUpRight, Menu } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+
+import { CommandPaletteTrigger } from "@/components/command-palette/command-palette-trigger";
+import {
+  allowMobileSidebarOpen,
+  isMobileSidebarCloseLocked,
+  markMobileSidebarClosed,
+  useSyncMobileSidebarPathname,
+} from "@/components/docs-sidebar/sidebar-close-lock";
+import { NavHeaderToc } from "@/components/docs/docs-header-toc";
+import { usePageTransition } from "@/components/page-transition/page-transition-provider";
+import { GITHUB_REPO_URL } from "@/lib/site";
+
+import { ThemeSwitcher } from "../animate/theme-switcher";
+import { IconLogo } from "../icon-logo";
+
+const DOCS_GUIDE_URL = "/docs";
+export interface NavProps {
+  /** First primitive doc from Fumadocs root folders (meta.json root flag). */
+  primitivesUrl: string;
+  /** UI kit landing page (`/ui`). */
+  uiUrl: string;
+}
+
+interface NavItem {
+  title: string;
+  url: string;
+}
+
+const BASE_NAV_ITEMS: NavItem[] = [{ title: "Docs", url: DOCS_GUIDE_URL }];
+
+const RESOURCE_NAV_ITEMS: NavItem[] = [];
+
+interface LibraryNavItem extends NavItem {
+  comingSoon?: boolean;
+  description: string;
+}
+
+const LIBRARY_NAV_ITEMS = (
+  _primitivesUrl: string,
+  _uiUrl: string
+): LibraryNavItem[] => [];
+
+const NAV_LINK_CLASS = cn(
+  "h-8 justify-center rounded-md bg-transparent px-3 py-0 font-normal text-neutral-700 text-sm transition-colors duration-200 ease-in-out hover:bg-transparent hover:text-black focus:bg-transparent focus:text-black dark:text-neutral-200 dark:focus:text-white dark:hover:text-white",
+  "data-[active=true]:bg-transparent data-[active=true]:text-black data-[active=true]:focus:bg-transparent data-[active=true]:hover:bg-transparent dark:data-[active=true]:text-white"
+);
+
+function LibraryMenuContent({
+  libraryItems,
+}: {
+  libraryItems: LibraryNavItem[];
+}) {
+  return (
+    <Highlight
+      className="pointer-events-none rounded-sm bg-accent"
+      containerClassName="flex w-120 gap-2"
+      controlledItems
+      hover
+      mode="parent"
+    >
+      <HighlightItem asChild value="sora-ui">
+        <NavigationMenuLink
+          asChild
+          className="relative z-10 w-45 shrink-0 bg-muted/60 p-3 hover:bg-muted/60 focus:bg-muted data-[active=true]:bg-muted/60 data-[active=true]:hover:bg-muted/60"
+        >
+          <Link href={DOCS_GUIDE_URL}>
+            <span className="flex size-9 items-center justify-center rounded-md border bg-background">
+              <IconLogo className="text-foreground" size="sm" />
+            </span>
+            <span className="mt-8 font-medium text-sm">Sora UI</span>
+            <span className="mt-1 text-muted-foreground text-xs leading-relaxed">
+              Fully animated, copy-paste component distribution.
+            </span>
+          </Link>
+        </NavigationMenuLink>
+      </HighlightItem>
+      <div className="grid flex-1 grid-cols-2 content-start gap-1">
+        {libraryItems.map((item) => {
+          if (item.comingSoon) {
+            return (
+              <div
+                aria-disabled="true"
+                className="relative z-10 flex cursor-default flex-col gap-1 p-3 opacity-50"
+                key={item.title}
+              >
+                <span className="flex items-center justify-between font-medium text-sm">
+                  {item.title}
+                  <span className="rounded-full border px-1.5 py-0.5 font-normal text-[10px] text-muted-foreground leading-none">
+                    Soon
+                  </span>
+                </span>
+                <span className="text-muted-foreground text-xs leading-relaxed">
+                  {item.description}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <HighlightItem asChild key={item.title} value={item.title}>
+              <NavigationMenuLink
+                asChild
+                className="relative z-10 gap-1 p-3 hover:bg-transparent data-[active=true]:bg-transparent data-[active=true]:hover:bg-transparent"
+              >
+                <Link href={item.url}>
+                  <span className="flex items-center justify-between font-medium text-sm">
+                    {item.title}
+                    <ArrowUpRight className="size-3.5 text-muted-foreground" />
+                  </span>
+                  <span className="text-muted-foreground text-xs leading-relaxed">
+                    {item.description}
+                  </span>
+                </Link>
+              </NavigationMenuLink>
+            </HighlightItem>
+          );
+        })}
+      </div>
+    </Highlight>
+  );
+}
+
+function NavMenuItems({ libraryItems }: { libraryItems: LibraryNavItem[] }) {
+  const pathname = usePathname();
+  const { setActiveValue, clearBounds } = useHighlight<string>();
+  useEffect(() => {
+    setActiveValue(null);
+    clearBounds();
+  }, [pathname, clearBounds, setActiveValue]);
+
+  return (
+    <>
+      {BASE_NAV_ITEMS.map((item) => (
+        <NavigationMenuItem key={item.title}>
+          <HighlightItem asChild value={item.title}>
+            <NavigationMenuLink asChild className={NAV_LINK_CLASS}>
+              <Link href={item.url}>{item.title}</Link>
+            </NavigationMenuLink>
+          </HighlightItem>
+        </NavigationMenuItem>
+      ))}
+      <NavigationMenuItem className="lg:hidden">
+        <HighlightItem asChild value="Library">
+          <NavigationMenuTrigger
+            className={cn(
+              NAV_LINK_CLASS,
+              "data-[state=open]:bg-transparent data-[state=open]:text-black data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent dark:data-[state=open]:text-white"
+            )}
+          >
+            Library
+          </NavigationMenuTrigger>
+        </HighlightItem>
+        <NavigationMenuContent>
+          <LibraryMenuContent libraryItems={libraryItems} />
+        </NavigationMenuContent>
+      </NavigationMenuItem>
+      {libraryItems.map((item) => (
+        <NavigationMenuItem className="hidden lg:block" key={item.title}>
+          <HighlightItem asChild value={item.title}>
+            <NavigationMenuLink asChild className={NAV_LINK_CLASS}>
+              <Link href={item.url}>{item.title}</Link>
+            </NavigationMenuLink>
+          </HighlightItem>
+        </NavigationMenuItem>
+      ))}
+      {RESOURCE_NAV_ITEMS.map((item) => (
+        <NavigationMenuItem key={item.title}>
+          <HighlightItem asChild value={item.title}>
+            <NavigationMenuLink asChild className={NAV_LINK_CLASS}>
+              <Link href={item.url}>{item.title}</Link>
+            </NavigationMenuLink>
+          </HighlightItem>
+        </NavigationMenuItem>
+      ))}
+    </>
+  );
+}
+
+export const Nav = ({ primitivesUrl, uiUrl }: NavProps) => {
+  useSyncMobileSidebarPathname();
+  const { setOpen } = useSidebar();
+  const { transitionTo } = usePageTransition();
+  const libraryItems = LIBRARY_NAV_ITEMS(primitivesUrl, uiUrl);
+
+  return (
+    <Navbar className="z-30 h-14 overflow-visible border-b-0 bg-transparent! px-(--fd-layout-offset) shadow-none! backdrop-blur-none! transition-none md:h-17">
+      <ProgressiveBlur
+        backgroundColor="var(--background)"
+        blurAmount="12px"
+        height="150%"
+        // maskFadeStart="45%"
+        position="top"
+      />
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-(--fd-layout-width) items-center gap-3 px-3 md:px-5">
+        <Link
+          className={buttonVariants({
+            className:
+              "size-8! p-0! transition-colors duration-200 ease-in-out [&_svg]:size-7!",
+            color: "ghost",
+            size: "icon-sm",
+          })}
+          href="/"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+              return;
+            }
+            e.preventDefault();
+            transitionTo("/", "commercial");
+          }}
+        >
+          <IconLogo size="sm" />
+        </Link>
+        <div className="flex flex-1 items-center justify-end gap-2 md:justify-between">
+          <div className="hidden items-center gap-1 md:flex">
+            <NavigationMenu viewport={false}>
+              <Highlight
+                className="pointer-events-none rounded-md bg-accent"
+                containerClassName="relative"
+                controlledItems
+                hover
+                mode="parent"
+              >
+                <NavigationMenuList className="relative z-10 gap-0 bg-transparent">
+                  <NavMenuItems libraryItems={libraryItems} />
+                </NavigationMenuList>
+              </Highlight>
+            </NavigationMenu>
+          </div>
+
+          <div className="relative z-10 flex shrink-0 items-center">
+            <CommandPaletteTrigger />
+
+            <a
+              aria-label="GitHub repository"
+              className="ms-2 hidden size-6 shrink-0 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground md:ms-3 md:inline-flex [&_svg]:size-6"
+              href={GITHUB_REPO_URL}
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <GithubIcon className="size-6" />
+            </a>
+
+            <NavHeaderToc />
+
+            <ThemeSwitcher className="max-md:hidden md:ms-3" />
+
+            <button
+              aria-label="Open menu"
+              className={cn(
+                buttonVariants({
+                  className:
+                    "relative z-10 ms-2 size-6! shrink-0 p-0! text-fd-muted-foreground md:hidden [&_svg]:size-6!",
+                  color: "ghost",
+                  size: "icon-sm",
+                })
+              )}
+              data-sidebar-menu-toggle="true"
+              onClick={() => {
+                setOpen((prev) => {
+                  if (prev) {
+                    markMobileSidebarClosed();
+                    return false;
+                  }
+                  if (isMobileSidebarCloseLocked()) {
+                    return false;
+                  }
+                  allowMobileSidebarOpen();
+                  return true;
+                });
+              }}
+              onPointerDown={(event) => {
+                if (isMobileSidebarCloseLocked()) {
+                  event.preventDefault();
+                }
+              }}
+              type="button"
+            >
+              <Menu />
+            </button>
+          </div>
+        </div>
+      </div>
+    </Navbar>
+  );
+};

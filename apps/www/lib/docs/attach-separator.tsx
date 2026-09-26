@@ -1,0 +1,174 @@
+import AnimateUIIcon from "@workspace/ui/components/icons/animateui-icon";
+import BaseUIIcon from "@workspace/ui/components/icons/baseui-icon";
+import CommunityIcon from "@workspace/ui/components/icons/community-icon";
+import HeadlessUIIcon from "@workspace/ui/components/icons/headlessui-icon";
+import ImageIcon from "@workspace/ui/components/icons/image-icon";
+import RadixIcon from "@workspace/ui/components/icons/radix-icon";
+import type { BuildPageTreeOptions } from "fumadocs-core/source";
+import {
+  Code,
+  Compass,
+  Layers,
+  LayoutTemplate,
+  ListCollapse,
+  MousePointerClick,
+  Navigation,
+  PlayIcon,
+  RectangleHorizontalIcon,
+  SparklesIcon,
+  TypeIcon,
+} from "lucide-react";
+
+import { LucideIcons } from "@/components/icons/lucide-icons";
+
+const Icon = ({ children }: { children: React.ReactNode }) => (
+  <span className="relative flex size-5 items-center justify-center rounded-[5px] bg-border text-muted-foreground [&_svg]:size-[12px]">
+    {children}
+
+    <span className="absolute top-full left-1/2 h-[8px] w-px translate-x-[calc(-50%-0.5px)] bg-border" />
+  </span>
+);
+
+export const Separator = ({
+  icon,
+  name,
+}: {
+  icon: React.ReactNode;
+  name: string;
+}) => (
+  <span className="flex items-center gap-2">
+    <Icon>{icon}</Icon>
+    <span className="text-[13px] text-neutral-500">{name}</span>
+  </span>
+);
+
+export const attachSeparator: BuildPageTreeOptions["attachSeparator"] = (
+  node
+) => {
+  switch (node.name) {
+    case "Overview": {
+      node.name = (
+        <Separator icon={<Compass strokeWidth={2.5} />} name="Overview" />
+      );
+      break;
+    }
+    case "Sora UI": {
+      node.name = (
+        <Separator
+          icon={<AnimateUIIcon className="size-3!" />}
+          name="Sora UI"
+        />
+      );
+      break;
+    }
+    case "Radix UI": {
+      node.name = (
+        <Separator icon={<RadixIcon className="size-2.5!" />} name="Radix UI" />
+      );
+      break;
+    }
+    case "Base UI": {
+      node.name = <Separator icon={<BaseUIIcon />} name="Base UI" />;
+      break;
+    }
+    case "Headless UI": {
+      node.name = <Separator icon={<HeadlessUIIcon />} name="Headless UI" />;
+      break;
+    }
+    case "Animate": {
+      node.name = (
+        <Separator
+          icon={<PlayIcon fill="currentColor" strokeWidth={2.5} />}
+          name="Animate"
+        />
+      );
+      break;
+    }
+    case "Effects": {
+      node.name = (
+        <Separator icon={<SparklesIcon fill="currentColor" />} name="Effects" />
+      );
+      break;
+    }
+    case "Community": {
+      node.name = <Separator icon={<CommunityIcon />} name="Community" />;
+      break;
+    }
+    case "Backgrounds": {
+      node.name = (
+        <Separator icon={<ImageIcon strokeWidth={5} />} name="Backgrounds" />
+      );
+      break;
+    }
+    case "Disclosure": {
+      node.name = (
+        <Separator
+          icon={<ListCollapse strokeWidth={2.5} />}
+          name="Disclosure"
+        />
+      );
+      break;
+    }
+    case "Overlays": {
+      node.name = (
+        <Separator icon={<Layers strokeWidth={2.5} />} name="Overlays" />
+      );
+      break;
+    }
+    case "Buttons": {
+      node.name = (
+        <Separator
+          icon={<RectangleHorizontalIcon fill="currentColor" />}
+          name="Buttons"
+        />
+      );
+      break;
+    }
+    case "Interaction": {
+      node.name = (
+        <Separator
+          icon={<MousePointerClick strokeWidth={2.5} />}
+          name="Interaction"
+        />
+      );
+      break;
+    }
+    case "Loading": {
+      node.name = (
+        <Separator icon={<LayoutTemplate strokeWidth={2.5} />} name="Loading" />
+      );
+      break;
+    }
+    case "Navigation": {
+      node.name = (
+        <Separator icon={<Navigation strokeWidth={2.5} />} name="Navigation" />
+      );
+      break;
+    }
+    case "Texts": {
+      node.name = (
+        <Separator icon={<TypeIcon strokeWidth={3} />} name="Texts" />
+      );
+      break;
+    }
+    case "Icons": {
+      node.name = (
+        <Separator icon={<LucideIcons strokeWidth={2} />} name="Icons" />
+      );
+      break;
+    }
+    case "Usage": {
+      node.name = <Separator icon={<Code strokeWidth={3} />} name="Usage" />;
+      break;
+    }
+    case "Guide": {
+      node.name = <Separator icon={<Code strokeWidth={2.5} />} name="Guide" />;
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+
+  return node;
+};

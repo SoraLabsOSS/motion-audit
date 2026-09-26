@@ -1,0 +1,57 @@
+"use client";
+
+import { Button } from "@workspace/ui/components/ui/button";
+import { cn } from "@workspace/ui/lib/utils";
+
+import "./globals.css";
+import { useEffect } from "react";
+
+import { fontSfPro } from "@/lib/fonts";
+
+export default function GlobalError({
+  error: _error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string };
+  unstable_retry: () => void;
+}) {
+  useEffect(() => {
+    // Detect dark theme from localStorage or system preferences
+    const savedTheme = localStorage.getItem("theme");
+    const systemPrefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+
+    document.documentElement.classList.toggle(
+      "dark",
+      savedTheme === "dark" ||
+        (savedTheme === "system" && systemPrefersDark) ||
+        (!savedTheme && systemPrefersDark)
+    );
+  }, [_error]);
+
+  return (
+    <html className={cn(fontSfPro.variable, "font-sans")} lang="en">
+      <body className="bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
+        <div className="relative flex min-h-screen flex-col items-center justify-center space-y-4 px-6 text-center">
+          <h1 className="font-light font-mono text-7xl">500</h1>
+          <p className="font-mono text-base text-zinc-500 dark:text-zinc-400">
+            Something went wrong!
+          </p>
+          <div className="flex items-center gap-3 pt-4">
+            <Button onClick={() => unstable_retry()}>Try again</Button>
+            <Button asChild variant="outline">
+              <a
+                href="https://github.com/SoraLabsOSS/ui/issues/new"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                Report issue
+              </a>
+            </Button>
+          </div>
+        </div>
+      </body>
+    </html>
+  );
+}
