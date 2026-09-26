@@ -27,10 +27,10 @@ const INSTALLATION_PROJECT_TREE: FileTreeElement[] = [
               {
                 children: [
                   {
+                    highlight: true,
                     id: "your-project/components/sora-ui/texts/text-effect.tsx",
                     name: "text-effect.tsx",
                     type: "file",
-                    highlight: true,
                   },
                 ],
                 defaultOpen: true,
@@ -87,7 +87,7 @@ export function InstallationFileStructure({
 }: InstallationFileStructureProps) {
   return (
     <section className={cn("not-prose my-8 flex flex-col gap-3", className)}>
-      <h2 className="font-semibold text-2xl tracking-tight">
+      <h2 className="text-2xl font-semibold tracking-tight">
         Project structure
       </h2>
       <p className="text-fd-muted-foreground text-sm leading-relaxed">

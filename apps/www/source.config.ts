@@ -5,6 +5,8 @@ import {
   metaSchema,
 } from "fumadocs-mdx/config";
 import lastModified from "fumadocs-mdx/plugins/last-modified";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 import remarkReadingTime from "remark-reading-time";
 import { z } from "zod/v4";
 
@@ -73,7 +75,8 @@ const readingTimePassthrough = {
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: (v) => [...v, remarkReadingTime],
+    rehypePlugins: (v) => [rehypeKatex, ...v],
+    remarkPlugins: (v) => [...v, remarkReadingTime, remarkMath],
     // remarkStructure writes to vfile.data; export it for search indexing.
     valueToExport: ["structuredData"],
   },

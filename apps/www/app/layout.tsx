@@ -4,19 +4,17 @@ import { RootProvider } from "fumadocs-ui/provider";
 import { MotionConfig } from "motion/react";
 import type { Metadata } from "next";
 
+import "katex/dist/katex.css";
 import "./globals.css";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { Suspense } from "react";
 import type { ReactNode } from "react";
 
 import { DeferredAnalytics } from "@/components/analytics-deferred";
 import { CommandPaletteGroupsProvider } from "@/components/command-palette/command-palette-groups-provider";
 import { CommandPaletteSearchDialog } from "@/components/command-palette/command-palette-search-dialog";
-import { ConditionalBanner } from "@/components/conditional-banner";
 import { GlobalCursorToggle } from "@/components/global-cursor-toggle";
 import { PageTransitionProvider } from "@/components/page-transition/page-transition-provider";
 import { QueryClientRootProvider } from "@/components/query-client-root-provider";
-import { isAuthEnabled } from "@/env";
 import { getCommandPaletteGroups } from "@/lib/command-palette/get-command-palette-items";
 import { fontSfPro } from "@/lib/fonts";
 import { jsonLd } from "@/lib/json-ld";
@@ -24,12 +22,7 @@ import {
   getOgMetadataImages,
   getTwitterMetadataImages,
 } from "@/lib/og/og-metadata-images";
-import {
-  getMetadataBaseUrl,
-  getPageAlternates,
-  SITE_DESCRIPTION,
-  SITE_URL,
-} from "@/lib/site";
+import { getMetadataBaseUrl, getPageAlternates, SITE_URL } from "@/lib/site";
 
 const defaultOgImages = getOgMetadataImages([], "Sora UI");
 const defaultTwitterImages = getTwitterMetadataImages([]);
