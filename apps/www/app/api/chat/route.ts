@@ -255,10 +255,6 @@ export async function POST(req: Request) {
       }
       const response = await fetch(env.AI_SEARCH_CHAT_URL, {
         body: JSON.stringify({
-          stream: true,
-          max_tokens: 2048,
-          model: "@cf/meta/llama-3.1-8b-instruct-fast",
-          messages: toCfMessages(messages),
           ai_search_options: {
             cache: { enabled: true },
             query_rewrite: {
@@ -266,6 +262,10 @@ export async function POST(req: Request) {
               rewrite_prompt: queryRewritePrompt,
             },
           },
+          max_tokens: 2048,
+          messages: toCfMessages(messages),
+          model: "@cf/meta/llama-3.1-8b-instruct-fast",
+          stream: true,
         }),
         headers: { "Content-Type": "application/json" },
         method: "POST",

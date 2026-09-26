@@ -23,16 +23,8 @@ const INSTALLATION_PROJECT_TREE: FileTreeElement[] = [
       {
         children: [
           {
-            id: "your-project/components/sora-ui",
-            name: "sora-ui",
-            type: "folder",
-            defaultOpen: true,
             children: [
               {
-                id: "your-project/components/sora-ui/texts",
-                name: "texts",
-                type: "folder",
-                defaultOpen: true,
                 children: [
                   {
                     id: "your-project/components/sora-ui/texts/text-effect.tsx",
@@ -41,8 +33,16 @@ const INSTALLATION_PROJECT_TREE: FileTreeElement[] = [
                     highlight: true,
                   },
                 ],
+                defaultOpen: true,
+                id: "your-project/components/sora-ui/texts",
+                name: "texts",
+                type: "folder",
               },
             ],
+            defaultOpen: true,
+            id: "your-project/components/sora-ui",
+            name: "sora-ui",
+            type: "folder",
           },
         ],
         defaultOpen: true,
@@ -53,10 +53,10 @@ const INSTALLATION_PROJECT_TREE: FileTreeElement[] = [
       {
         children: [
           {
+            highlight: true,
             id: "your-project/lib/utils.ts",
             name: "utils.ts",
             type: "file",
-            highlight: true,
           },
         ],
         defaultOpen: true,
