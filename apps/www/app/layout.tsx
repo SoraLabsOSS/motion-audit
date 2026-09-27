@@ -8,7 +8,6 @@ import "katex/dist/katex.css";
 import "./globals.css";
 import type { ReactNode } from "react";
 
-import { DeferredAnalytics } from "@/components/analytics-deferred";
 import { CommandPaletteSearchDialog } from "@/components/command-palette/command-palette-search-dialog";
 import { GlobalCursorToggle } from "@/components/global-cursor-toggle";
 import { Providers } from "@/components/providers";
@@ -128,7 +127,6 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <Toaster />
           </Providers>
         </MotionConfig>
-        <DeferredAnalytics />
       </body>
     </html>
   );

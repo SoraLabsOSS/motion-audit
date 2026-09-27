@@ -124,7 +124,7 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
   const scrollHeight =
     scrollElement.scrollHeight || document.body.scrollHeight || 0;
 
-  const headings: { id: string; element: Element }[] = [];
+  const headings: { id: string; element: HTMLElement }[] = [];
   for (const item of tocItems) {
     const id = item.url.slice(1);
     if (!id) {
@@ -387,7 +387,7 @@ function HeaderTocPopover() {
           sideOffset={8}
         >
           <PageTOCPopoverItems
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin]!"
+            className="min-h-0 flex-1 [scrollbar-width:thin]! overflow-y-auto overscroll-contain"
             data-docs-toc-scroller=""
             variant="clerk"
           />
