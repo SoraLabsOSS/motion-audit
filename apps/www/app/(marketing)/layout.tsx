@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
 
-export default function MarketingLayout({ children }: { children: ReactNode }) {
-  return children;
-}
+import { Navbar } from "@/components/home/navbar";
+
+const MarketingLayout = ({ children }: { children: ReactNode }) => (
+  <>
+    <Navbar />
+    {children}
+  </>
+);
+
+export default MarketingLayout;

@@ -18,6 +18,7 @@
     "./components/og/palette": "./src/components/og/palette.ts",
     "./components/primitives/animate/*": "./src/components/primitives/animate/*.tsx",
     "./components/primitives/effects/*": "./src/components/primitives/effects/*.tsx",
+    "./components/ui/*": "./src/components/ui/*.tsx",
     "./components/*": "./src/components/*.tsx",
     "./hooks/use-auto-height": "./src/hooks/use-auto-height.tsx",
     "./hooks/*": "./src/hooks/*.ts"
