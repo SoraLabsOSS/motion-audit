@@ -6,15 +6,12 @@ import type { Metadata } from "next";
 
 import "katex/dist/katex.css";
 import "./globals.css";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 
 import { DeferredAnalytics } from "@/components/analytics-deferred";
-import { CommandPaletteGroupsProvider } from "@/components/command-palette/command-palette-groups-provider";
 import { CommandPaletteSearchDialog } from "@/components/command-palette/command-palette-search-dialog";
 import { GlobalCursorToggle } from "@/components/global-cursor-toggle";
-import { PageTransitionProvider } from "@/components/page-transition/page-transition-provider";
-import { QueryClientRootProvider } from "@/components/query-client-root-provider";
+import { Providers } from "@/components/providers";
 import { getCommandPaletteGroups } from "@/lib/command-palette/get-command-palette-items";
 import { fontSfPro } from "@/lib/fonts";
 import { jsonLd } from "@/lib/json-ld";
@@ -76,7 +73,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Layout({ children }: { children: ReactNode }) {
+export const Layout = ({ children }: { children: ReactNode }) => {
   const commandGroups = getCommandPaletteGroups();
 
   const app = (
@@ -108,19 +105,13 @@ export default function Layout({ children }: { children: ReactNode }) {
       >
         <MotionConfig reducedMotion="user">
           <GlobalCursorToggle />
-          <CommandPaletteGroupsProvider groups={commandGroups}>
-            <NuqsAdapter>
-              <QueryClientRootProvider>
-                <PageTransitionProvider>
-                  {app}
-                  <Toaster />
-                </PageTransitionProvider>
-              </QueryClientRootProvider>
-            </NuqsAdapter>
-          </CommandPaletteGroupsProvider>
+          <Providers commandGroups={commandGroups}>
+            {app}
+            <Toaster />
+          </Providers>
         </MotionConfig>
         <DeferredAnalytics />
       </body>
     </html>
   );
-}
+};

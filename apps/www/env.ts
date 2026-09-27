@@ -27,7 +27,3 @@ export const env = createEnv({
       .default("development"),
   },
 });
-
-export function isAuthEnabled() {
-  return false;
-}

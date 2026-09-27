@@ -12,7 +12,7 @@ const AISearchRootLazy = dynamic(
 
 /**
  * Single Ask AI instance for the whole app — lives in the doc layout.
- * Hidden on home, settings, and auth.
+ * Hidden on home and catalog pages.
  * Loaded dynamically so that AI SDK, chat runtime, and markdown AST
  * parsers are completely excluded from the initial critical JS bundle.
  */

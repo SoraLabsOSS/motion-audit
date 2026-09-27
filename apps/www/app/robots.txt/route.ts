@@ -1,13 +1,7 @@
 import { staticContentCacheLife } from "@/lib/cache/static-content-cache-life";
 import { SITE_URL } from "@/lib/site";
 
-const DISALLOWED_PATHS = [
-  "/api/",
-  "/auth/",
-  "/settings/",
-  "/library",
-  "/static.json",
-];
+const DISALLOWED_PATHS = ["/api/", "/static.json"];
 
 async function getRobotsContent() {
   "use cache";

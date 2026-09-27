@@ -464,16 +464,6 @@
     ) !important;
   }
 
-  /* Account (settings, bookmark): sidebar is mobile-only */
-  #nd-docs-layout.account-docs-layout {
-    margin-inline-start: var(--fd-layout-offset) !important;
-    margin-inline-end: var(--fd-layout-offset) !important;
-  }
-
-  #nd-docs-layout.account-docs-layout #nd-page {
-    max-width: min(100%, var(--fd-layout-width)) !important;
-  }
-
   /* Docs nav: progressive blur on a stable fixed layer (avoids Fumadocs bg/backdrop shift on scroll) */
   #nd-subnav {
     transform: translateZ(0);
@@ -485,7 +475,7 @@
   }
 
   #nd-page article.blog-article {
-    @apply !pt-3 !max-w-none;
+    @apply !max-w-none !pt-3;
   }
 
   /* Reserve TOC column width in page flex layout. */

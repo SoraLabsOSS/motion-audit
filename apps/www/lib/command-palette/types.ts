@@ -1,7 +1,6 @@
 export type CommandPaletteIcon =
   | "arrow"
   | "book"
-  | "bookmark"
   | "box"
   | "cog"
   | "external"

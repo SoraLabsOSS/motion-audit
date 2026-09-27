@@ -46,7 +46,7 @@ const STEP_TAG_RE = /<\/?Step>/g;
 const STEPS_TAG_RE = /<\/?Steps>/g;
 const CALLOUT_TAG_RE = /<\/?Callout(?:\s+[^>]*)?>/g;
 const GENERIC_STRIP_TAGS_RE =
-  /<\/?(?:AddToCursorButton|RoadmapTimeline|Icons|IconsFallback|PrimitivesIndex|UiIndex|InstallationFileStructure|Suspense)(?:\s+[^>]*)?>/g;
+  /<\/?(?:AddToCursorButton|Icons|IconsFallback|PrimitivesIndex|UiIndex|InstallationFileStructure|Suspense)(?:\s+[^>]*)?>/g;
 
 const HEADING_TAG_RE = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi;
 const HTML_TAG_RE = /<[^>]+>/g;
