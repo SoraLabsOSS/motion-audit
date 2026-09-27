@@ -50,17 +50,21 @@ function toOgDataUrl(buffer: Buffer): string | undefined {
   return `data:${mime};base64,${buffer.toString("base64")}`;
 }
 
-function getBrandAvatarDataUrl(): Promise<string | undefined> {
-  if (!brandAvatarDataUrl) {
-    brandAvatarDataUrl = readFile(
+const readBrandAvatarDataUrl = async (): Promise<string | undefined> => {
+  try {
+    const buffer = await readFile(
       path.join(process.cwd(), "public", brandAvatarFileName)
-    )
-      .then((buffer) => toOgDataUrl(buffer))
-      .catch((): undefined => undefined);
+    );
+    return toOgDataUrl(buffer);
+  } catch {
+    return;
   }
+};
 
-  return brandAvatarDataUrl;
-}
+const getBrandAvatarDataUrl = async (): Promise<string | undefined> => {
+  brandAvatarDataUrl ??= readBrandAvatarDataUrl();
+  return await brandAvatarDataUrl;
+};
 
 function isLocalBrandAvatar(src: string): boolean {
   const brandPaths = [
@@ -72,26 +76,28 @@ function isLocalBrandAvatar(src: string): boolean {
   return brandPaths.includes(src);
 }
 
-function fetchRemoteOgImage(src: string): Promise<string | undefined> {
+const fetchRemoteOgImage = async (src: string): Promise<string | undefined> => {
   let url: string;
   try {
     url = assertSafeOgImageUrl(src);
   } catch {
-    return Promise.resolve<string | undefined>();
+    return;
   }
 
   const cached = remoteDataUrls.get(url);
   if (cached) {
-    return cached;
+    return await cached;
   }
 
-  const pending = fetch(url, {
-    headers: {
-      Accept: "image/jpeg,image/png,image/*;q=0.8",
-      "User-Agent": "SoraUI-OG/1.0",
-    },
-  })
-    .then(async (response): Promise<string | undefined> => {
+  const pending = (async (): Promise<string | undefined> => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "image/jpeg,image/png,image/*;q=0.8",
+          "User-Agent": "SoraUI-OG/1.0",
+        },
+      });
+
       if (!response.ok) {
         remoteDataUrls.delete(url);
         return;
@@ -102,15 +108,15 @@ function fetchRemoteOgImage(src: string): Promise<string | undefined> {
         remoteDataUrls.delete(url);
       }
       return dataUrl;
-    })
-    .catch((): undefined => {
+    } catch {
       remoteDataUrls.delete(url);
-      return undefined;
-    });
+      return;
+    }
+  })();
 
   remoteDataUrls.set(url, pending);
-  return pending;
-}
+  return await pending;
+};
 
 /**
  * Satori cannot reliably fetch images itself (localhost, GitHub UA, palette PNG).
