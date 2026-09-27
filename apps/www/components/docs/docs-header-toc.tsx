@@ -130,7 +130,7 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
     if (!id) {
       continue;
     }
-    const el = document.querySelector(`#${id}`);
+    const el = document.getElementById(id);
     if (el) {
       headings.push({ element: el, id });
     }
