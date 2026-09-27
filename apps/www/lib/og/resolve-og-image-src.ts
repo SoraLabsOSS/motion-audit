@@ -59,7 +59,7 @@ function getBrandAvatarDataUrl(): Promise<string | undefined> {
       .catch(() => {});
   }
 
-  return brandAvatarDataUrl ?? Promise.resolve();
+  return brandAvatarDataUrl;
 }
 
 function isLocalBrandAvatar(src: string): boolean {

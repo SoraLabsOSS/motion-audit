@@ -115,3 +115,5 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     </html>
   );
 };
+
+export default Layout;
