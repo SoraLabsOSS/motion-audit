@@ -124,7 +124,7 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
   const scrollHeight =
     scrollElement.scrollHeight || document.body.scrollHeight || 0;
 
-  const headings: { id: string; element: HTMLElement }[] = [];
+  const headings: { id: string; element: Element }[] = [];
   for (const item of tocItems) {
     const id = item.url.slice(1);
     if (!id) {
