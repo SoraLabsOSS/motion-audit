@@ -30,7 +30,7 @@ export const baseOptions: BaseLayoutProps = {
     } as any,
     {
       secondary: false,
-      text: "Introduction",
+      text: "Conceptual Analysis",
       url: "/docs/methodology",
     },
   ],
