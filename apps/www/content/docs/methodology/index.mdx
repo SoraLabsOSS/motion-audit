@@ -1,3 +1,88 @@
 ---
-title: Introduction
+title: Conceptual Analysis & Observable Dimensions
+description: Analysis of publicly documented MotionScore concepts, observable browser rendering dimensions, and SoraLabs research boundaries.
 ---
+
+## 1. Scope & Formal Attribution
+
+<Callout title="Scope of this document" type="info">
+This document analyzes publicly available information about MotionScore for research and attribution purposes. It is not a reproduction of MotionScore's internal implementation or scoring algorithm. Where Motion Audit introduces additional metrics, formulas, thresholds, or calibration methods, those are independently developed and experimentally validated by SoraLabs.
+</Callout>
+
+<Callout title="Attribution and Independent Implementation" type="info">
+SoraLabs Motion Audit draws conceptual inspiration from publicly documented animation-performance auditing methodologies, including MotionScore by Motion.dev.
+
+The project independently derives its technical model from browser rendering architecture, W3C web-platform specifications, Chromium compositor behavior, GPU memory and graphics-system principles, and empirical benchmarking.
+
+MotionScore is treated as a research reference rather than an implementation dependency. SoraLabs does not reuse its source code, implementation, proprietary assets, or unpublished internal methodology.
+
+Motion Audit's auditing rules, scoring model, calibration parameters, and implementation are developed independently by SoraLabs.
+</Callout>
+
+MotionScore publicly documents an S-to-F grading framework for evaluating animation performance according to rendering characteristics. The following section summarizes the publicly documented concepts relevant to Motion Audit and does not reproduce MotionScore's implementation.
+
+---
+
+## 2. Publicly Documented Conceptual Classification
+
+`[PUBLIC]` _Documented by MotionScore_
+
+Public documentation on `score.motion.dev/methodology` outlines an **S-to-F qualitative hierarchy** reflecting how deeply animations disturb the browser's render pipeline:
+
+| Tier | Classification | Pipeline Cost | Documented Conceptual Description |
+| :--- | :------------- | :------------ | :-------------------------------- |
+| **S** | **Compositor-only** | Lowest | Executed off the main thread on the Compositor Thread (e.g., CSS/WAAPI `transform`, `opacity`, `filter`, `clip-path`). |
+| **A** | **Main-thread composite** | Low | Compositing occurs off-thread, but animation ticks originate on the main thread (JS/WAAPI drivers). |
+| **B** | **Measure before Composite** | Moderate | Geometric measurement occurs prior to delegating to compositor execution (e.g., FLIP layout transitions). |
+| **C** | **Paint-triggering** | High | Visual invalidation requires rasterization passes (e.g., `background-color`, `box-shadow`, `border-radius`, CSS variables). |
+| **D** | **Layout-triggering** | Very High | Geometry recalculation (reflow) disrupts neighboring DOM nodes (e.g., `width`, `height`, `top`, `left`, flex/grid changes). |
+| **F** | **Thrashing** | Critical | Alternating DOM reads and writes defeat browser batching, triggering synchronous style/reflow cycles. |
+
+<Callout title="Contextual Invalidation Disclaimer" type="warn">
+These classifications describe the conceptual hierarchy documented by MotionScore and should not be interpreted as universal browser guarantees. Actual rendering behavior can vary by property, browser version, GPU driver, DOM structure, and execution context.
+</Callout>
+
+---
+
+## 3. Observable Dimensions Under Investigation
+
+`[RESEARCH]` _SoraLabs Investigation & Research Areas_
+
+To evaluate web motion rigorously without assuming unpublished third-party scoring formulas, SoraLabs groups observable animation performance into four technical research dimensions for this investigation:
+
+1. **Animation Execution Pipeline:**
+   - `[PUBLIC]` Qualitative distinction between compositor, paint, and layout operations.
+   - `[OBSERVED]` Observable CDP traces (`Animation.animationStarted`, style recalculations, paint rects).
+   - `[IMPLEMENTATION]` Experimental property-cost vector, currently parameterized as $\mathcal{C}_{\text{prop}}$ (initial baseline $\{1, 4, 8\}$) and subject to empirical calibration.
+
+2. **Scroll-Driven Mechanics:**
+   - `[PUBLIC]` Distinction between off-thread declarative scroll timelines and synchronous script listeners.
+   - `[OBSERVED]` Main-thread event latency, passive flag compliance, and animation frame synchronization.
+   - `[IMPLEMENTATION]` Experimental listener penalty parameterization, currently explored in the range $1.1\times$–$1.3\times$ and subject to benchmark validation.
+
+3. **Layout Thrashing & Mutation Patterns:**
+   - `[PUBLIC]` Concept of interleaved read/write mutations causing pipeline stall.
+   - `[OBSERVED]` Chromium Blink `Document::UpdateStyleAndLayoutTree` call stacks in Performance profiles.
+   - `[IMPLEMENTATION]` Experimental graph clustering approach using `DisjointSet` (Union-Find), with causal thrash-chain escalation.
+
+4. **GPU Texture & Memory Pressure:**
+   - `[OBSERVED]` Compositor layer quad bounds (`LayerTree.layerTreeDidChange`), layer counts, and DPR-aware texture and layer estimates.
+   - `[IMPLEMENTATION]` Theoretical uncompressed RGBA8 texture estimate ($\mathcal{M}_{\text{raw}} = W \times H \times 4 \times \text{DPR}^2$) alongside modeled tiled backing-store buffer:
+     $$\mathcal{M}_{\text{model}} = W \times H \times 4 \times \text{DPR}^2 \times K_{\text{buffer}}$$
+     where $K_{\text{buffer}} = 3$ is an experimental/reference modeling assumption, not a claim about a universal Chromium allocation strategy.
+
+---
+
+## 4. Contextual Modifiers & Perception Boundaries
+
+Real-world execution cost diverges substantially based on geometric and temporal context:
+
+- **Surface Area Scaling:**
+  - `[OBSERVED]` Large raster invalidations bottleneck GPU fragment fillrate. Repainting a full-screen background is vastly heavier than repainting an icon.
+  - `[IMPLEMENTATION]` Clamped paint surface scaling ratio ($\mathcal{S}_{\text{paint}} \in [0.25,\, 5.0]$), currently parameterized around a $5\%$ viewport baseline and subject to empirical calibration.
+- **Visibility & Offscreen Culling:**
+  - `[OBSERVED]` Offscreen elements ticking animations consume main-thread execution time and power unnecessarily.
+- **Timing, Concurrency, and Frame Budgets:**
+  - `[RESEARCH]` $16.67\text{ms}$ (~$60\text{Hz}$) and $8.33\text{ms}$ (~$120\text{Hz}$) are used as reference frame budgets; actual runtime budgets depend dynamically on the display hardware's native refresh rate (ProMotion, $144\text{Hz}$, variable refresh rate).
+  - `[IMPLEMENTATION]` Experimental duration weighting for short-lived interactions ($< 250\text{ms}$), currently parameterized as $\mathcal{D}_{\text{time}} \in [0.25,\, 1.0]$ and subject to empirical refinement.
+  - `[IMPLEMENTATION]` Experimental concurrency aggregation model ($0.8 \cdot P_{75} + 0.2 \cdot \text{Max}$), designed to balance representative interaction density against transient outlier spikes, and targeted for comparative sensitivity analysis against alternate percentiles ($P_{50}, P_{75}, P_{90}, P_{95}, \text{Max}$).

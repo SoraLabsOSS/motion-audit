@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const BLOG_BRAND_AVATAR_PATH = "/icons/icon.png";
 import { assertSafeOgImageUrl } from "@/lib/og/assert-safe-og-image-url";
 import { getMetadataBaseUrl, SITE_URL } from "@/lib/site";
 
-const brandAvatarFileName = BLOG_BRAND_AVATAR_PATH.replace(/^\//, "");
+const BRAND_AVATAR_PATH = "/icons/icon.png";
+const brandAvatarFileName = BRAND_AVATAR_PATH.replace(/^\//, "");
 const remoteDataUrls = new Map<string, Promise<string | undefined>>();
 
 let brandAvatarDataUrl: Promise<string | undefined> | undefined;
@@ -68,9 +68,9 @@ const getBrandAvatarDataUrl = async (): Promise<string | undefined> => {
 
 function isLocalBrandAvatar(src: string): boolean {
   const brandPaths = [
-    BLOG_BRAND_AVATAR_PATH,
-    `${SITE_URL}${BLOG_BRAND_AVATAR_PATH}`,
-    `${getMetadataBaseUrl()}${BLOG_BRAND_AVATAR_PATH}`,
+    BRAND_AVATAR_PATH,
+    `${SITE_URL}${BRAND_AVATAR_PATH}`,
+    `${getMetadataBaseUrl()}${BRAND_AVATAR_PATH}`,
   ];
 
   return brandPaths.includes(src);
@@ -94,7 +94,7 @@ const fetchRemoteOgImage = async (src: string): Promise<string | undefined> => {
       const response = await fetch(url, {
         headers: {
           Accept: "image/jpeg,image/png,image/*;q=0.8",
-          "User-Agent": "SoraUI-OG/1.0",
+          "User-Agent": "MotionAudit-OG/1.0",
         },
       });
 

@@ -383,11 +383,10 @@ export function CommandPaletteDialog({
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">
-          Search components, docs, blog, and actions
+          Search components, docs, and actions
         </DialogTitle>
         <DialogDescription className="sr-only">
-          Search and navigate to components, documentation, blog posts, and
-          quick actions.
+          Search and navigate to components, documentation, and quick actions.
         </DialogDescription>
 
         <Command className="relative min-w-0" loop shouldFilter={!hasQuery}>

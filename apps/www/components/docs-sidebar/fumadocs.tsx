@@ -363,7 +363,7 @@ export const DocsSidebar = (
     <DocsShell className="h-full min-h-0 max-md:w-full max-md:max-w-full">
       <DocsShellHeader className="flex items-center justify-between border-b px-4 py-3 md:hidden">
         <Link
-          aria-label="Sora UI home"
+          aria-label="Motion Audit home"
           className="flex items-center gap-2 rounded-md outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
           href="/"
           onClick={(e) => {
@@ -376,7 +376,7 @@ export const DocsSidebar = (
           }}
         >
           <IconLogo size="sm" />
-          <span className="font-semibold text-sm">Sora UI</span>
+          <span className="font-semibold text-sm">Motion Audit</span>
         </Link>
         <button
           aria-label="Close menu"

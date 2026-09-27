@@ -21,6 +21,13 @@ const SITE_DEFAULT: OgPageContent = {
  */
 export function resolveOgPage(slug: string[]): OgPageContent | null {
   if (slug.length === 0) {
+    const rootPage = source.getPage([]);
+    if (rootPage) {
+      return {
+        description: rootPage.data.description,
+        title: rootPage.data.title,
+      };
+    }
     return SITE_DEFAULT;
   }
 

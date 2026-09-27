@@ -71,7 +71,7 @@ _(Or from the repository root: `bun run dev:www`, `bun run registry:build`, `bun
 
 ## Environment variables
 
-**No `.env` file is required** to browse docs, blog, or the catalog locally. Copy [`.env.example`](./.env.example) to `.env` only when you need optional features:
+**No `.env` file is required** to browse docs or the catalog locally. Copy [`.env.example`](./.env.example) to `.env` only when you need optional features:
 
 | Feature | Variables |
 | --- | --- |

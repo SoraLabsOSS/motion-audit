@@ -80,9 +80,9 @@ const LOADING_MESSAGES = [
 const LOADING_MESSAGE_INTERVAL_MS = 2500;
 
 const SUGGESTED_PROMPTS = [
-  "How do I install Sora UI?",
-  "What is stagger button?",
-  "How do I add icons?",
+  "How do I install Motion Audit?",
+  "What is the Motion Audit methodology?",
+  "How does compositor execution work?",
 ] as const;
 
 /**

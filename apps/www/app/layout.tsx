@@ -21,13 +21,19 @@ import {
 } from "@/lib/og/og-metadata-images";
 import { getMetadataBaseUrl, getPageAlternates, SITE_URL } from "@/lib/site";
 
-const defaultOgImages = getOgMetadataImages([], "Sora UI");
+const defaultOgImages = getOgMetadataImages([], "Motion Audit");
 const defaultTwitterImages = getTwitterMetadataImages([]);
 
 export const metadata: Metadata = {
   alternates: getPageAlternates("/"),
-  authors: [],
-  description: "",
+  authors: [
+    {
+      name: "SoraLabs",
+      url: "https://github.com/SoraLabsOSS",
+    },
+  ],
+  description:
+    "Automated web animation and compositor performance evaluation engine. Audit frame rates, layout thrashing, and GPU memory pressure.",
   icons: {
     apple: [{ sizes: "180x180", url: "/apple-touch-icon.png" }],
     icon: [
@@ -47,29 +53,41 @@ export const metadata: Metadata = {
     ],
     shortcut: ["/favicon.ico"],
   },
-  keywords: [],
+  keywords: [
+    "motion audit",
+    "animation performance",
+    "web performance",
+    "compositor",
+    "layout thrashing",
+    "gpu memory pressure",
+    "frame rates",
+    "motionscore",
+    "soralabs",
+  ],
   metadataBase: new URL(getMetadataBaseUrl()),
   openGraph: {
-    description: "",
+    description:
+      "Automated web animation and compositor performance evaluation engine.",
     images: defaultOgImages,
     locale: "en_US",
-    siteName: "",
-    title: "",
+    siteName: "Motion Audit",
+    title: "Motion Audit — Web Motion Performance Diagnostics & Scoring",
     type: "website",
     url: SITE_URL,
   },
-  publisher: "",
+  publisher: "SoraLabs",
   title: {
-    default: "",
-    template: "%s",
+    default: "Motion Audit — Web Motion Performance Diagnostics",
+    template: "%s | Motion Audit",
   },
   twitter: {
     card: "summary_large_image",
-    creator: "",
-    description: "",
+    creator: "@soralabs",
+    description:
+      "Automated web animation and compositor performance evaluation engine.",
     images: defaultTwitterImages,
-    site: "",
-    title: "",
+    site: "@soralabs",
+    title: "Motion Audit — Web Motion Performance Diagnostics",
   },
 };
 

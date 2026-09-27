@@ -20,8 +20,8 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     id: SITE_URL,
-    name: "Sora UI",
-    short_name: "Sora UI",
+    name: "Motion Audit",
+    short_name: "Motion Audit",
     start_url: "/",
     theme_color: "#121212",
   };

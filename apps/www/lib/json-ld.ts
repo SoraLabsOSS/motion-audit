@@ -1,39 +1,35 @@
 import { CONTACT_EMAIL, SITE_DESCRIPTION, SITE_URL } from "@/lib/site";
 
-export const SORA_UI_PUBLISHER_JSON_LD = {
+export const MOTION_AUDIT_PUBLISHER_JSON_LD = {
   "@id": `${SITE_URL}/#organization`,
   "@type": "Organization",
-  alternateName: "Sora Labs",
+  alternateName: "SoraLabs",
   email: CONTACT_EMAIL,
-  founder: {
-    "@type": "Person",
-    jobTitle: "Founder",
-    name: "Axyl",
-    sameAs: ["https://github.com/axyl1410", "https://x.com/axyl1410"],
-  },
   foundingDate: "2026-08-24",
   knowsAbout: [
-    "React",
+    "Web Performance",
+    "Animation Performance",
+    "Browser Compositor",
+    "Frame Rate Diagnostics",
+    "Layout Thrashing",
+    "GPU Texture Allocation",
     "TypeScript",
-    "Tailwind CSS",
-    "Motion",
-    "GSAP",
-    "Animated UI components",
-    "UI library",
-    "shadcn/ui",
   ],
   logo: {
     "@type": "ImageObject",
-    caption: "Sora UI Logo",
+    caption: "Motion Audit Logo",
     height: 192,
     url: `${SITE_URL}/android-chrome-192x192.png`,
     width: 192,
   },
-  name: "",
+  name: "Motion Audit",
   sameAs: ["https://github.com/SoraLabsOSS/motion-audit"],
-  slogan: "",
+  slogan:
+    "Automated web animation and compositor performance evaluation engine",
   url: SITE_URL,
 } as const;
+
+export const SORA_UI_PUBLISHER_JSON_LD = MOTION_AUDIT_PUBLISHER_JSON_LD;
 
 export const jsonLd = {
   "@context": "https://schema.org",
@@ -43,12 +39,12 @@ export const jsonLd = {
       "@type": "WebSite",
       description: SITE_DESCRIPTION,
       inLanguage: "en",
-      name: "Sora UI",
+      name: "Motion Audit",
       publisher: {
         "@id": `${SITE_URL}/#organization`,
       },
       url: SITE_URL,
     },
-    SORA_UI_PUBLISHER_JSON_LD,
+    MOTION_AUDIT_PUBLISHER_JSON_LD,
   ],
 };

@@ -39,6 +39,7 @@ import { ThemeSwitcher } from "../animate/theme-switcher";
 import { IconLogo } from "../icon-logo";
 
 const DOCS_GUIDE_URL = "/docs";
+const METHODOLOGY_URL = "/docs/methodology";
 export interface NavProps {
   /** First primitive doc from Fumadocs root folders (meta.json root flag). */
   primitivesUrl: string;
@@ -51,7 +52,10 @@ interface NavItem {
   url: string;
 }
 
-const BASE_NAV_ITEMS: NavItem[] = [{ title: "Docs", url: DOCS_GUIDE_URL }];
+const BASE_NAV_ITEMS: NavItem[] = [
+  { title: "Docs", url: DOCS_GUIDE_URL },
+  { title: "Methodology", url: METHODOLOGY_URL },
+];
 
 const RESOURCE_NAV_ITEMS: NavItem[] = [];
 
@@ -83,7 +87,7 @@ function LibraryMenuContent({
       hover
       mode="parent"
     >
-      <HighlightItem asChild value="sora-ui">
+      <HighlightItem asChild value="motion-audit">
         <NavigationMenuLink
           asChild
           className="relative z-10 w-45 shrink-0 bg-muted/60 p-3 hover:bg-muted/60 focus:bg-muted data-[active=true]:bg-muted/60 data-[active=true]:hover:bg-muted/60"
@@ -92,9 +96,9 @@ function LibraryMenuContent({
             <span className="flex size-9 items-center justify-center rounded-md border bg-background">
               <IconLogo className="text-foreground" size="sm" />
             </span>
-            <span className="mt-8 font-medium text-sm">Sora UI</span>
+            <span className="mt-8 font-medium text-sm">Motion Audit</span>
             <span className="mt-1 text-muted-foreground text-xs leading-relaxed">
-              Fully animated, copy-paste component distribution.
+              Web motion performance auditing engine.
             </span>
           </Link>
         </NavigationMenuLink>
@@ -154,15 +158,28 @@ function NavMenuItems({ libraryItems }: { libraryItems: LibraryNavItem[] }) {
 
   return (
     <>
-      {BASE_NAV_ITEMS.map((item) => (
-        <NavigationMenuItem key={item.title}>
-          <HighlightItem asChild value={item.title}>
-            <NavigationMenuLink asChild className={NAV_LINK_CLASS}>
-              <Link href={item.url}>{item.title}</Link>
-            </NavigationMenuLink>
-          </HighlightItem>
-        </NavigationMenuItem>
-      ))}
+      {BASE_NAV_ITEMS.map((item) => {
+        const isActive =
+          item.url === DOCS_GUIDE_URL
+            ? pathname === DOCS_GUIDE_URL ||
+              (pathname.startsWith("/docs") &&
+                !pathname.startsWith(METHODOLOGY_URL))
+            : pathname.startsWith(item.url);
+
+        return (
+          <NavigationMenuItem key={item.title}>
+            <HighlightItem asChild value={item.title}>
+              <NavigationMenuLink
+                active={isActive}
+                asChild
+                className={NAV_LINK_CLASS}
+              >
+                <Link href={item.url}>{item.title}</Link>
+              </NavigationMenuLink>
+            </HighlightItem>
+          </NavigationMenuItem>
+        );
+      })}
       <NavigationMenuItem className="lg:hidden">
         <HighlightItem asChild value="Library">
           <NavigationMenuTrigger

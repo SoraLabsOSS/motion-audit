@@ -1,3 +1,69 @@
 ---
 title: Introduction
+description: Overview of Motion Audit — an animation performance auditing framework for modern web applications.
 ---
+
+## What is Motion Audit?
+
+**Motion Audit** is an automated performance evaluation framework designed to audit, measure, and optimize web animations, interactive UI transitions, and scroll dynamics.
+
+While modern web standards and animation libraries make sophisticated motion easier to build than ever, inefficient animations remain one of the most common causes of dropped frames, battery drain, and sluggish interactions. Motion Audit evaluates the real computational cost of animations on the browser rendering engine.
+
+---
+
+## Why Motion Audit?
+
+Traditional web performance tools like Lighthouse and Core Web Vitals prioritize **initial page load** and **discrete input responsiveness**:
+
+- **Core Web Vitals** measure loading performance (LCP), visual stability during load (CLS), and responsiveness to discrete user interactions (INP).
+- **Lighthouse** captures synthetic snapshots of page initialization and initial rendering.
+
+However, neither tool continuously monitors runtime motion health. A website can achieve a perfect **100/100 Lighthouse score** yet still suffer from:
+
+- **Continuous Paint Invalidation**: Animating visual properties like `box-shadow`, `border-radius`, or `background-color` that force expensive rasterization on every frame.
+- **Layout Thrashing**: Interleaved DOM reads and writes during scroll or drag interactions that trigger synchronous reflows.
+- **Layer Explosion & Memory Pressure**: Unintended layer promotions causing implicit compositing of overlapping elements and elevating GPU texture allocation.
+- **Main-Thread Contention**: JavaScript-driven animation loops competing with application logic and event handling.
+
+Motion Audit bridges this gap by providing dedicated diagnostics for motion and runtime graphics performance.
+
+---
+
+## Core Evaluation Pillars
+
+Motion Audit evaluates animation performance across four architectural pillars:
+
+### Execution Pipeline Cost
+Different CSS properties and animation APIs impose vastly different computational costs on the browser rendering pipeline. Properties like `transform` and `opacity` can often be handled by the compositor without requiring main-thread layout or paint work, whereas paint- and layout-triggering properties demand repeated rasterization passes or full geometry reflows.
+
+### Scroll Dynamics
+Evaluates how scroll-linked motion is driven. Declarative CSS scroll-driven animations (`scroll-timeline`, `view-timeline`) can enable browser-managed scroll-linked motion without requiring a synchronous JavaScript scroll loop. `IntersectionObserver` provides an asynchronous mechanism for reacting to visibility changes without continuously sampling scroll position.
+
+### Layout Stability & Thrashing
+Detects rapid cycles of DOM reads and writes that defeat browser batching optimizations, forcing the rendering engine into expensive synchronous layout cycles.
+
+### GPU Memory & Layer Health
+Monitors composited layer geometry, surface area, and related memory estimates to identify patterns that may contribute to excessive GPU texture allocation and implicit layer-promotion overhead.
+
+---
+
+## Qualitative Grading (S-to-F Ladder)
+
+Motion Audit synthesizes diagnostic signals into an intuitive, qualitative **S-to-F tier hierarchy**:
+
+| Tier | Qualitative Classification | Operational Meaning |
+| :--- | :------------------------- | :------------------ |
+| **S** | **Pristine** | Compositor-friendly execution with minimal measured overhead. |
+| **A** | **Smooth** | Negligible main-thread impact, well within standard hardware budgets. |
+| **B** | **Acceptable** | Functional performance with minor paint overhead or measurement cycles. |
+| **C** | **Degraded** | Noticeable rendering overhead requiring frequent re-rasterization. |
+| **D** | **Poor** | Heavy geometry recalculations and continuous layout reflows. |
+| **F** | **Critical** | Severe layout thrashing, rendering contention, or excessive memory pressure. |
+
+---
+
+## Methodological Attribution
+
+Motion Audit draws conceptual inspiration from publicly documented animation performance evaluation principles, including **MotionScore** by Motion.dev.
+
+The technical architecture, diagnostic heuristics, browser instrumentation, and evaluation models in Motion Audit are developed independently by SoraLabs, grounded in W3C web platform specifications, Chromium rendering architecture, and empirical browser performance analysis.

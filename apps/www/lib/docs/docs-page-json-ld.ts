@@ -1,5 +1,5 @@
 import type { Page } from "@/lib/docs/source";
-import { SORA_UI_PUBLISHER_JSON_LD } from "@/lib/json-ld";
+import { MOTION_AUDIT_PUBLISHER_JSON_LD } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site";
 
 function getBreadcrumbJsonLd(page: Page) {
@@ -47,7 +47,7 @@ export function getDocsPageJsonLd(page: Page) {
         ...(author.url && { url: author.url }),
       },
     }),
-    publisher: SORA_UI_PUBLISHER_JSON_LD,
+    publisher: MOTION_AUDIT_PUBLISHER_JSON_LD,
     inLanguage: "en",
   };
 

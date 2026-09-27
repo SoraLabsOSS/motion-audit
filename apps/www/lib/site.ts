@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 /** Production site origin — used for sitemap, robots, metadata, and JSON-LD. */
-export const SITE_URL = "https://ui.soralabs.studio" as const;
+export const SITE_URL = "https://motion.soralabs.studio" as const;
 
 function toAbsoluteSiteUrl(pathname: string): string {
   if (pathname === "/" || pathname === "") {
@@ -51,13 +51,14 @@ export const COMMUNITY_ISSUES_URL =
 export const COMMUNITY_DISCUSSIONS_URL =
   "https://github.com/SoraLabsOSS/motion-audit/discussions" as const;
 
-export const SITE_DESCRIPTION = "";
+export const SITE_DESCRIPTION =
+  "Automated web animation and compositor performance evaluation engine.";
 
 /** Default OG image headline */
-export const SITE_OG_HERO_TITLE = "";
+export const SITE_OG_HERO_TITLE = "Motion Audit";
 
 /** OG image subline */
-export const SITE_OG_HERO_SUBLINE = "";
+export const SITE_OG_HERO_SUBLINE = "Diagnostics & Performance Engine";
 
 /**
  * Origin for resolving metadata and OG image URLs.

@@ -21,7 +21,7 @@ export function buildLlmsIndex(
   _iconsPages: any[] = []
 ): string {
   const lines = [
-    "# Sora UI",
+    "# Motion Audit",
     `> ${SITE_DESCRIPTION}`,
     "",
     "## Documentation",

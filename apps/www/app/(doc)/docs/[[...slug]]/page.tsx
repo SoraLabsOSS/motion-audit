@@ -222,16 +222,16 @@ export async function generateMetadata(props: {
           },
         ]
       : {
-          name: "axyl1410",
-          url: "https://github.com/axyl1410",
+          name: "SoraLabs",
+          url: "https://github.com/SoraLabsOSS",
         },
     description: page.data.description,
     openGraph: {
       description: page.data.description,
       images: getOgMetadataImages(ogPath, title),
       locale: "en_US",
-      siteName: "Sora UI",
-      title,
+      siteName: "Motion Audit",
+      title: `${title} | Motion Audit`,
       type: "website",
       url: `${SITE_URL}${page.url}`,
     },
@@ -240,7 +240,7 @@ export async function generateMetadata(props: {
       card: "summary_large_image",
       description: page.data.description,
       images: getTwitterMetadataImages(ogPath),
-      title,
+      title: `${title} | Motion Audit`,
     },
   };
 }

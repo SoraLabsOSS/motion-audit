@@ -7,9 +7,6 @@ import { SITE_URL } from "@/lib/site";
 
 type ContentPage = InferPageType<typeof source>;
 
-/** Keep in sync with `LAST_UPDATED` in legal policy articles. */
-const LEGAL_LAST_UPDATED = new Date("2026-06-24");
-
 function toLastModified(value: Date | string | number | undefined) {
   if (!value) {
     return;
@@ -45,21 +42,6 @@ function contentPageToEntry(
   };
 }
 
-const LEGAL_ENTRIES: MetadataRoute.Sitemap = [
-  {
-    changeFrequency: "yearly",
-    lastModified: LEGAL_LAST_UPDATED,
-    priority: 0.3,
-    url: `${SITE_URL}/legal/privacy`,
-  },
-  {
-    changeFrequency: "yearly",
-    lastModified: LEGAL_LAST_UPDATED,
-    priority: 0.3,
-    url: `${SITE_URL}/legal/terms`,
-  },
-];
-
 async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   "use cache";
   staticContentCacheLife();
@@ -80,7 +62,6 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
       url: SITE_URL,
     },
     ...docEntries,
-    ...LEGAL_ENTRIES,
   ];
 
   // Deduplicate by URL while preserving the highest priority entry

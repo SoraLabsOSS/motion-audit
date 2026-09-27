@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug } = await params;
-  const pageSlug = slug.slice(0, -1);
+  const pageSlug = slug.at(-1)?.endsWith(".png") ? slug.slice(0, -1) : slug;
   const buffer = await getCachedOgImageBuffer(pageSlug);
 
   if (!buffer) {
@@ -29,9 +29,10 @@ export function generateStaticParams(): {
   const docParams = source
     .generateParams()
     .filter((page) => source.getPage(page.slug) !== null)
-    .map((page) => ({
-      slug: [...page.slug, "image.png"],
-    }));
+    .flatMap((page) => [
+      { slug: [...page.slug, "image.png"] },
+      ...(page.slug.length > 0 ? [{ slug: page.slug }] : []),
+    ]);
 
   return [{ slug: ["image.png"] }, ...docParams];
 }
