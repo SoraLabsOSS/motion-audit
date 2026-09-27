@@ -56,7 +56,7 @@ function getBrandAvatarDataUrl(): Promise<string | undefined> {
       path.join(process.cwd(), "public", brandAvatarFileName)
     )
       .then((buffer) => toOgDataUrl(buffer))
-      .catch(() => {});
+      .catch((): undefined => undefined);
   }
 
   return brandAvatarDataUrl;
@@ -77,7 +77,7 @@ function fetchRemoteOgImage(src: string): Promise<string | undefined> {
   try {
     url = assertSafeOgImageUrl(src);
   } catch {
-    return Promise.resolve();
+    return Promise.resolve<string | undefined>();
   }
 
   const cached = remoteDataUrls.get(url);
