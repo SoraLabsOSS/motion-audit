@@ -24,9 +24,9 @@ export const Hero = () => {
     <div className="relative z-10 flex flex-col items-center justify-center">
       {/* 1. Eyebrow Badge */}
       <MotionEffect delay={0} fade slide={{ direction: "up", offset: 16 }}>
-        <div className="bg-accent/80 border-border/40 mb-8 flex items-center gap-2 rounded-full border py-1 pr-3.5 pl-1.5 text-sm shadow-xs backdrop-blur-xs">
+        <div className="mb-8 flex items-center gap-2 rounded-full border border-white/15 bg-white/10 py-1 pr-3.5 pl-1.5 text-sm shadow-xs backdrop-blur-xs">
           <div className="flex items-center gap-2">
-            <span className="bg-primary text-primary-foreground flex h-6 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-medium">
+            <span className="flex h-6 items-center justify-center gap-1.5 rounded-full bg-white px-2 text-xs font-medium text-black">
               <svg
                 aria-hidden="true"
                 className="size-3.5"
@@ -45,7 +45,7 @@ export const Hero = () => {
                 <line x1="12" x2="12.01" y1="17" y2="17" />
               </svg>
             </span>
-            <span className="text-foreground/90 text-xs font-medium tracking-wider uppercase">
+            <span className="text-xs font-medium tracking-wider text-white/90 uppercase">
               UNDER ACTIVE DEVELOPMENT
             </span>
           </div>
@@ -55,7 +55,7 @@ export const Hero = () => {
       {/* 2. Huge Title */}
       <MotionEffect delay={0.1} fade slide={{ direction: "up", offset: 16 }}>
         <h1 className="max-w-[320px] sm:max-w-[600px] md:max-w-[900px]">
-          <span className="text-foreground block text-center text-5xl font-medium tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
+          <span className="block text-center text-5xl font-medium tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl">
             {WORDS.map((word, wordIndex) => {
               const prevCharsCount = wordIndex === 0 ? 0 : WORDS[0].length + 1;
 
@@ -113,7 +113,7 @@ export const Hero = () => {
         <MotionEffect delay={0.3} fade slide={{ direction: "up", offset: 16 }}>
           <div>
             <Link
-              className="bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-6 font-medium whitespace-nowrap shadow-xs transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 has-[>svg]:px-6 has-[>svg]:pr-5"
+              className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-6 font-medium whitespace-nowrap text-black shadow-xs transition-colors hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 has-[>svg]:px-6 has-[>svg]:pr-5"
               data-slot="button"
               href="/docs"
               onClick={handleDocsClick}
@@ -144,7 +144,7 @@ export const Hero = () => {
         <MotionEffect delay={0.35} fade slide={{ direction: "up", offset: 16 }}>
           <div>
             <a
-              className="bg-accent text-accent-foreground hover:bg-accent/90 border-border/40 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-6 font-medium whitespace-nowrap shadow-xs transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50"
+              className="group inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-6 font-medium whitespace-nowrap text-white shadow-xs backdrop-blur-xs transition-colors hover:border-white/25 hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
               data-slot="button"
               href="https://github.com/SoraLabsOSS/motion-audit"
               rel="noopener noreferrer"
