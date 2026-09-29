@@ -131,7 +131,8 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
       continue;
     }
     // DO NOT REVERT: Keep getElementById instead of querySelector. IDs starting with numbers (e.g. #1-scope-...) throw SyntaxError in querySelector.
-    const el = document.querySelector(`#${id}`);
+    // eslint-disable-next-line unicorn/prefer-query-selector
+    const el = document.getElementById(id);
     if (el) {
       headings.push({ element: el, id });
     }
