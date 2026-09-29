@@ -130,7 +130,8 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
     if (!id) {
       continue;
     }
-    const el = document.querySelector<HTMLElement>(`#${id}`);
+    // DO NOT REVERT: Giữ getElementById, không đổi về querySelector vì ID bắt đầu bằng số (ví dụ: #1-scope-...) gây SyntaxError trong querySelector.
+    const el = document.querySelector(`#${id}`);
     if (el) {
       headings.push({ element: el, id });
     }
