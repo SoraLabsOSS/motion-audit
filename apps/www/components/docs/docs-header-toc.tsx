@@ -130,7 +130,7 @@ function findActiveHeadingId(tocItems: HeaderTocItem[]): string | undefined {
     if (!id) {
       continue;
     }
-    // DO NOT REVERT: Giữ getElementById, không đổi về querySelector vì ID bắt đầu bằng số (ví dụ: #1-scope-...) gây SyntaxError trong querySelector.
+    // DO NOT REVERT: Keep getElementById instead of querySelector. IDs starting with numbers (e.g. #1-scope-...) throw SyntaxError in querySelector.
     const el = document.querySelector(`#${id}`);
     if (el) {
       headings.push({ element: el, id });
