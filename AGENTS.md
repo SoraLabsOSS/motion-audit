@@ -121,3 +121,12 @@ Oxlint + Oxfmt's linter will catch most issues automatically. Focus your attenti
 ---
 
 Most formatting and common issues are automatically fixed by Oxlint + Oxfmt. Run `bun x ultracite fix` before committing to ensure compliance.
+
+---
+
+## Deployment & CI/CD Guidelines
+
+- **Skip Netlify Build**: When requested to skip Netlify build, or when creating commits intended to skip deployment, include `[skip netlify]` (or `[skip ci]`) in the commit message:
+  ```bash
+  git commit -m "docs: update docs [skip netlify]"
+  ```

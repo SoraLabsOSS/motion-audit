@@ -20,6 +20,7 @@ const docSchema = frontmatterSchema.extend({
     })
     .optional(),
   releaseDate: z.coerce.date().optional(),
+  sidebarTitle: z.string().optional(),
 });
 
 // You can customise Zod schemas for frontmatter and `meta.json` here

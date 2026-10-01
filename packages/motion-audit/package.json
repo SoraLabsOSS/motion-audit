@@ -1,0 +1,41 @@
+{
+  "name": "@soralabs/motion-audit",
+  "version": "0.1.0",
+  "description": "Independent Web Animation & Motion Performance Auditor",
+  "homepage": "https://motion.soralabs.studio",
+  "license": "MIT",
+  "author": "Axyl1410",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SoraLabsOSS/motion-audit.git"
+  },
+  "bin": {
+    "motion-audit": "./bin/motion-audit.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "picocolors": "^1.1.1",
+    "puppeteer": "^25.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0"
+  },
+  "trustedDependencies": [
+    "puppeteer"
+  ]
+}
