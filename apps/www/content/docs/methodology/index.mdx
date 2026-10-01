@@ -14,6 +14,11 @@ sidebarTitle: Conceptual Analysis
   independently developed and experimentally validated by SoraLabs.
 </Callout>
 
+The [Measurement Provenance and Methodology
+Boundaries](/docs/methodology/measurement-provenance) page explains the public
+foundations, browser-observable signals, and calibration boundaries used by
+Motion Audit.
+
 <Callout title="Attribution and Independent Implementation" type="info">
 SoraLabs Motion Audit draws conceptual inspiration from publicly documented animation-performance auditing methodologies, notably MotionScore by Motion.dev ([https://score.motion.dev/methodology](https://score.motion.dev/methodology)).
 
@@ -25,11 +30,51 @@ Motion Audit's quantitative auditing rules, scoring model, calibration parameter
 
 </Callout>
 
+## 2.1 Clean-room measurement boundary
+
+Motion Audit keeps three kinds of evidence separate:
+
+1. **Public facts** — behavior documented by W3C specifications, Chromium
+   documentation, or the Chrome DevTools Protocol.
+2. **Observable measurements** — values collected from a running browser, such
+   as Web Animations API state, Long Animation Frames entries, CDP layer
+   changes, compositing reasons, and paint counts.
+3. **Project calibration** — tunable SoraLabs choices such as pillar weights,
+   penalty points, memory bands, duration floors, and tier boundaries.
+
+Public facts and browser observations can justify a measurement capability.
+Calibration values are operational targets, not universal browser, hardware,
+W3C, Lighthouse, or Core Web Vitals constants.
+
+Third-party artifacts are not treated as implementation specifications, test
+oracles, or sources of constants. Motion Audit relies on public behavior and
+its own measured calibration fixtures.
+
+## 2.2 Permitted browser signals
+
+The implementation uses public interfaces with explicit limitations:
+
+| Signal | What it can support | What it cannot prove |
+| :--- | :--- | :--- |
+| Web Animations API | Active animations, keyframes, timing, and sampled animation frames | That an animation is always compositor-executed |
+| Long Animation Frames API | Long-frame duration and blocking-duration observations | Availability in every browser or a complete dropped-frame model |
+| CDP LayerTree | Layer snapshots, layer changes, paint counts, and compositing reasons | Physical GPU allocation or a universal rendering cost |
+| CSS pixel and DPR definitions | A theoretical raw RGBA texture estimate | Driver allocation, compression, swap-chain, or tile-manager memory |
+| Forced-layout guidance and DOM observations | Candidate read/write layout-thrashing patterns | A complete causal trace for every browser pipeline decision |
+
+For a real-site benchmark, raw telemetry must be reported beside the
+operational score: browser and version, OS, viewport, DPR, run count, warm-up
+policy, frame observations, LoAF/long-task observations, layer telemetry, and
+modeled memory. Results are comparative indicators within that controlled
+environment.
+
+---
+
 MotionScore publicly documents an S-to-F grading framework for evaluating animation performance according to rendering characteristics. The following section summarizes the publicly documented concepts referenced from [https://score.motion.dev/methodology](https://score.motion.dev/methodology) and does not reproduce MotionScore's internal implementation.
 
 ---
 
-## 2. Publicly Documented Conceptual Classification
+## 3. Publicly Documented Conceptual Classification
 
 `[PUBLIC]` _Documented by MotionScore ([score.motion.dev/methodology](https://score.motion.dev/methodology))_
 
@@ -53,7 +98,7 @@ Public documentation on [https://score.motion.dev/methodology](https://score.mot
 
 ---
 
-## 3. Observable Dimensions Under Investigation
+## 4. Observable Dimensions Under Investigation
 
 `[RESEARCH]` _SoraLabs Investigation & Research Areas_
 
@@ -80,7 +125,7 @@ To evaluate web motion rigorously without assuming unpublished third-party scori
 
 ---
 
-## 4. Contextual Modifiers & Perception Boundaries
+## 5. Contextual Modifiers & Perception Boundaries
 
 Real-world execution cost diverges substantially based on geometric and temporal context:
 

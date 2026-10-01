@@ -1,57 +1,41 @@
 ---
-title: Empirical Score Experiments and Benchmark Observations
-description: Systematic recording of observable input/output audit behaviors across varied synthetic animation payloads.
+title: Synthetic Score Calibration
+description: Deterministic input/output calibration cases for the scoring model, not browser performance measurements.
 sidebarTitle: Score Experiments
 ---
 
-## 1. Experimental Methodology
+# Synthetic Score Calibration
 
-To evaluate the mathematical dynamics of browser rendering stages under controlled benchmark workloads, we construct synthetic test cases:
+## 1. Calibration Methodology
+
+To exercise the mathematical dynamics of the scoring functions, we construct synthetic input cases:
 
 - **Controlled Isolation:** Altering a single variable at a time (property type, paint surface area, duration, concurrency, viewport size).
-- **Observation Focus:** Recording the resulting numeric score ($0 - 100$) and assigned tier ($S, A, B, C, D, F$).
-- **Disclaimers:** All observations reflect reproducible input/output mapping under benchmark conditions.
+- **Observation Focus:** Recording the deterministic numeric score ($0 - 100$) and assigned tier ($S, A, B, C, D, F$).
+- **Boundary:** These are model calibration examples, not browser measurements. They do not establish user-perceived frame rate, actual VRAM allocation, or causal performance impact.
 
 ---
 
-## 2. Test Cases and Observations
+## 2. Calibration Cases
 
-### Experiment 01: Property Cost Hierarchy
+### Calibration 01: Property Cost Hierarchy
 
-- **Payload A:** 10 elements animating `transform: translateX(100px)` (Compositor).
-  - _Result:_ Score 98–100, Tier **S**.
-- **Payload B:** 10 elements animating `background-color: #ff0000` over $100 \times 100\text{px}$ (Paint).
-  - _Result:_ Score 88–92, Tier **A/B**.
-- **Payload C:** 10 elements animating `width: 300px` (Layout/Reflow).
-  - _Result:_ Score 62–68, Tier **C/D**.
-- _SoraLabs Deduction:_ Layout modifications incur approximately $2\times$ the deduction penalty of paint operations, while compositor-only operations incur baseline negligible cost.
+The implementation assigns an ordered cost vector (Compositor $=0$, Paint $=20$, Layout $=50$). The resulting score also depends on paint area, duration, concurrency, and the other viewport pillars, so property type alone does not determine a fixed score or tier.
 
 ---
 
-### Experiment 02: Paint Surface Scaling Law
+### Calibration 02: Paint Surface Scaling Law
 
-- **Payload A:** Single element animating `box-shadow` on a small avatar ($40 \times 40\text{px}$, area ratio $\approx 0.001$).
-  - _Result:_ Minor score deduction ($\approx -2$ points).
-- **Payload B:** Single element animating `box-shadow` on a full-screen hero container ($1440 \times 900\text{px}$, area ratio $= 1.0$).
-  - _Result:_ Severe score deduction ($\approx -22$ points).
-- _SoraLabs Deduction:_ Paint penalties scale non-linearly with the surface area ratio ($\text{PaintArea} / \text{ViewportArea}$). Small micro-repaints are clamped to a minimum floor ($0.25\times$), whereas large repaints hit an amplification ceiling ($4.0\times$).
+Paint penalties use the documented ratio clamp $\operatorname{clamp}(0.25, 4.0, \rho / 0.10)$. The clamp is an operational calibration choice, not a measured GPU fill-rate law.
 
 ---
 
-### Experiment 03: Duration and Micro-Interaction Discounting
+### Calibration 03: Duration and Micro-Interaction Discounting
 
-- **Payload A:** Layout change lasting $50\text{ms}$ (instant state transition).
-  - _Result:_ Moderate deduction ($\approx -5$ points).
-- **Payload B:** Identical layout change lasting $1200\text{ms}$ continuous loop.
-  - _Result:_ Severe continuous penalty ($\approx -20$ points).
-- _SoraLabs Deduction:_ Under the Google RAIL performance framework, interactions under $100\text{ms}$ benefit from a duration discount factor, reflecting the cognitive threshold where transient frame pacing drops are perceived as instantaneous by the human visual system.
+The duration factor is a model discount that reaches $1.0$ at $100\text{ms}$ and is capped below at $0.25$. It must not be interpreted as proof that every sub-$100\text{ms}$ animation is imperceptible.
 
 ---
 
-### Experiment 04: Consecutive Frame Thrashing Severity
+### Calibration 04: Consecutive Frame Thrashing Severity
 
-- **Payload A:** 1 isolated read-after-write during initial document parsing and DOMContentLoaded.
-  - _Result:_ Handled gracefully (Tier A/B).
-- **Payload B:** Continuous read-after-write across $> 8$ consecutive frames during active rAF animation loops.
-  - _Result:_ Instant drop to Tier **F**.
-- _SoraLabs Deduction:_ Layout thrashing across consecutive animation frames locks the main thread across multiple 16.6ms frame budgets. Sustained consecutive frames act as an exponential trigger driving the audit score to failure.
+The analyzer applies a consecutive-frame multiplier and then combines the thrashing pillar with the other viewport pillars. A long burst increases penalty, but does not by itself guarantee Tier F; the final tier depends on the computed score and bottleneck caps.

@@ -1,0 +1,106 @@
+---
+title: Measurement Provenance and Methodology Boundaries
+description: How browser observations, public standards, and project calibration inform Motion Audit.
+sidebarTitle: Measurement provenance
+---
+
+# Measurement Provenance and Methodology Boundaries
+
+## Purpose
+
+Motion Audit combines public browser standards, observable Chromium/CDP
+telemetry, and project-defined calibration. This page explains what each
+source can support and where the evidence stops.
+
+This protocol separates:
+
+1. **Public facts:** behavior documented by a standard or browser interface.
+2. **Observable measurements:** values collected from a running browser.
+3. **Project calibration:** tunable scoring choices owned by SoraLabs.
+
+Public facts and browser observations support measurement capabilities.
+Calibration values are explicitly labeled as project methodology and validated
+with independent fixtures.
+
+## Public foundations and observable signals
+
+| Input | Permitted use | Boundary |
+| :--- | :--- | :--- |
+| W3C Web Animations API | Read `Document.getAnimations()`, keyframes, and timing | Describes animation state; it does not prove compositor execution |
+| W3C Long Animation Frames API | Observe `long-animation-frame` entries and script/render timing | Availability varies by browser version |
+| CDP LayerTree | Observe layer changes and request compositing reasons | CDP output is browser-specific telemetry |
+| CDP Performance/Tracing | Collect timing and rendering events | Dropped frames require interpretation of trace/timing data |
+| CSS and graphics definitions | Derive CSS-pixel, DPR, and raw RGBA estimates | Raw estimates are not driver VRAM measurements |
+| Public rendering guidance | Identify forced-layout patterns and mitigation | Guidance does not provide numeric score weights |
+
+## Measurement primitives
+
+These equations describe measurement primitives. They do not define a universal
+performance score.
+
+### Raw texture estimate
+
+For a CSS surface of width $W$, height $H$, and density $d$, the raw texture
+estimate is $M_{\mathrm{raw}} = W \times H \times 4 \times d^2$.
+
+This estimates an uncompressed RGBA8888 surface. Alignment, tiling,
+compression, swap chains, and driver allocation are outside the equation.
+
+### Percentile
+
+For sorted values $x_0 \ldots x_{n-1}$, linear interpolation at percentile
+$p$ uses $i = p(n-1)$ and
+$P_p = (1-(i-\lfloor i\rfloor))x_{\lfloor i\rfloor} +
+(i-\lfloor i\rfloor)x_{\lceil i\rceil}$.
+
+The percentile implementation must define its interpolation and keep that
+choice stable across releases.
+
+### Consecutive-frame run
+
+Given observed frame indices, begin a run only where \(f-1\) is absent, then
+count \(f+1, f+2, \ldots\). This is a deterministic \(O(N)\) hash-set
+calculation for the longest observed run; it is not a claim about frame
+duration.
+
+## Project calibration
+
+Calibration values such as pillar weights, penalty points, memory bands,
+duration floors, and tier boundaries are project parameters. Each parameter
+must have:
+
+- a named constant or table in `src/`;
+- an explanation of its operational intent;
+- boundary and empty-input tests;
+- a statement that it is not a universal browser or hardware constant.
+
+Synthetic fixtures may verify deterministic score behavior. They must not be
+described as browser ground truth or user-perceived performance evidence.
+
+Real-site benchmarks must report raw telemetry beside the operational score:
+browser/version, viewport, DPR, run count, warm-up policy, frame timings,
+LoAF/long-task observations, layer telemetry, and modeled memory. Scores are
+comparative indicators within that controlled environment.
+
+## Evidence boundaries
+
+- A theoretical tile or texture estimate is not physical GPU allocation.
+- A browser-specific CDP signal is not a universal rendering cost.
+- A synthetic fixture is not browser ground truth or user-perceived
+  performance evidence.
+- A Motion Audit tier is not an industry, W3C, Chromium, Lighthouse, or Core
+  Web Vitals certification.
+
+Implementation decisions are based on the public foundations and observations
+listed above, not on undocumented third-party internals or output values used
+as calibration oracles.
+
+## Public references
+
+- [W3C Long Animation Frames](https://www.w3.org/TR/long-animation-frames/)
+- [W3C Web Animations](https://www.w3.org/TR/web-animations-1/)
+- [Chrome DevTools Protocol LayerTree](https://chromedevtools.github.io/devtools-protocol/tot/LayerTree/)
+- [Chrome DevTools Protocol Performance](https://chromedevtools.github.io/devtools-protocol/tot/Performance/)
+- [Chrome DevTools performance analysis](https://developer.chrome.com/docs/devtools/performance)
+- [CSS Values and Units](https://www.w3.org/TR/css-values-4/)
+- [web.dev layout thrashing guidance](https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing)
