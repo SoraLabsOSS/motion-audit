@@ -96,7 +96,6 @@ const nextConfig: NextConfig = {
       { hostname: "avatars.githubusercontent.com" },
     ],
   },
-  partialPrefetching: true,
   reactCompiler: true,
   reactStrictMode: false,
   async redirects() {
