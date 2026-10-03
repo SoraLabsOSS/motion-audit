@@ -1,0 +1,56 @@
+---
+title: Mathematical and Structural Hypotheses
+description: Formal hypotheses translating observable audit behavior into candidate mathematical equations and structural models.
+sidebarTitle: Mathematical Hypotheses
+---
+
+# Mathematical and Structural Hypotheses
+
+## 1. Hypothesis 1: The Deductive Baseline Model
+
+### Premise:
+
+Performance auditing tools typically either accumulate positive points or subtract penalties from a perfect baseline.
+
+### Hypothesis:
+
+The scoring engine operates as a **Deductive Cost Superposition**: $$\text{Score} = \max\left(0,\, 100 - \sum_{i=1}^k \mathcal{C}_i \cdot \omega_i\right)$$ Where $\mathcal{C}_i$ represents normalized cost units incurred by pipeline invalidation stage $i$, and $\omega_i$ denotes environmental scaling factors (surface area, duration).
+
+---
+
+## 2. Hypothesis 2: Texture Memory Allocation Function
+
+### Premise:
+
+Hardware compositing requires physical memory allocations in the GPU driver.
+
+### Hypothesis:
+
+Composited layer memory is governed strictly by RGBA8888 32-bit pixel density scaling: $$\mathcal{M}_{\text{texture}} = W \cdot H \cdot 4 \cdot \text{DPR}^2$$ For tiled layers, Chromium `cc::TileManager` allocates memory in discrete $256 \times 256$ pixel tiles: $$\mathcal{M}_{\text{tiled}} = \left\lceil \frac{W \cdot \text{DPR}}{256} \right\rceil \cdot \left\lceil \frac{H \cdot \text{DPR}}{256} \right\rceil \cdot 256^2 \cdot 4$$ Scrollers allocate additional raster horizon tiles covering visible viewport plus pre-raster lookahead.
+
+---
+
+## 3. Hypothesis 3: Animation Timeline Concurrency
+
+### Premise:
+
+Interactive web applications often orchestrate multiple simultaneous animations during transitions, causing thread contention.
+
+### Hypothesis:
+
+Evaluating animation load requires assessing both sustained concurrency and burst spikes: $$\mathcal{C}_{\text{effective}} = \text{round}\left(0.6 \cdot \bar{C}_{\text{active}} + 0.4 \cdot C_{\text{peak}}\right)$$ This balances the continuous background animation burden against peak coordination bursts without arbitrary sampling artifacts.
+
+---
+
+## 4. Hypothesis 4: Chromium Cumulative Reflow & Layout Thrashing
+
+### Premise:
+
+Individual DOM reads or writes do not constitute thrashing; only causal pairs (read-after-write) invalidate clean layout state and force synchronous geometric recalculation (`Document::UpdateStyleAndLayoutTree`).
+
+### Hypothesis:
+
+Forced reflow severity depends on two physical factors:
+
+1. **Intra-frame Loop Compounding:** Multiple reflows inside the same frame ($N+1$ query pattern) compound main-thread execution time logarithmically.
+2. **Invalidation Scope:** Document root mutations (`body`, `html`, `#root`) invalidate the entire Render Tree, whereas leaf element mutations invalidate only localized subtrees. Consecutive frame persistence acts as a sustained jank multiplier, rapidly exceeding the 50ms Google RAIL interaction budget.

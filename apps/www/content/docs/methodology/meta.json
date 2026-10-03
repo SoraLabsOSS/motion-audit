@@ -1,4 +1,9 @@
 {
   "title": "Methodology",
-  "pages": ["index", "measurement-provenance", "score-experiments"]
+  "pages": [
+    "index",
+    "measurement-provenance",
+    "hypotheses",
+    "score-experiments"
+  ]
 }
