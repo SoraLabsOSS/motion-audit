@@ -1,0 +1,46 @@
+---
+title: Chromium Compositor Architecture and GraphicsLayer Promotion
+description: Deep architectural dive into Blink, Chromium cc (Chrome Compositor), GraphicsLayer promotion criteria, and the Overlap Promotion hazard.
+sidebarTitle: Compositor Architecture
+---
+
+# Chromium Compositor Architecture
+
+## 1. The Rendering Pipeline Hierarchy
+
+In Chromium's Blink rendering engine, rendering is structured as a directional directed acyclic graph (DAG) pipeline:
+
+$$\text{DOM} \longrightarrow \text{Style} \longrightarrow \text{Layout (Reflow)} \longrightarrow \text{Pre-Paint} \longrightarrow \text{Paint (Raster)} \longrightarrow \text{Composite}$$
+
+As documented in Steve Kobes' _Life of a Pixel_ (Google Chrome University), the most performant animations bypass the Main Thread entirely and operate strictly on the **Compositor Thread** (`cc/` module in Chromium).
+
+---
+
+## 2. Intentional vs Implicit Compositing
+
+Chromium's compositor promotes a DOM element to an independent hardware `GraphicsLayer` under specific conditions:
+
+### A. Intentional Promotion Reasons
+
+Elements promoted purposefully by developer declaration or explicit transform operations:
+
+- `will-change: transform`, `will-change: opacity`, `will-change: filter`.
+- 3D transforms: `translate3d`, `rotate3d`, `matrix3d`.
+- Accelerated video elements (`<video>`), `<canvas>`, and CSS animations acting on compositor properties.
+
+### B. Implicit Promotion (The "Overlap Promotion" Hazard)
+
+Documented in Chromium's _Accelerated Compositing Design_:
+
+- When element $E_A$ is promoted to a graphics layer, any non-promoted element $E_B$ that renders **above $E_A$ in stacking order** and **overlaps its geometry bounds** MUST also be promoted to its own graphics layer to preserve correct visual stacking order.
+- **The Layer Explosion Hazard:** A single animated modal or tooltip elevated with `transform: translateZ(0)` can cause hundreds of sibling elements to be implicitly promoted, resulting in catastrophic VRAM spikes and OOM tab crashes.
+
+---
+
+## 3. Compositor Thread Autonomy
+
+When an animation targets `transform` or `opacity`:
+
+1. The animation timeline and keyframes are serialized and transferred via IPC to the Compositor Thread.
+2. Every V-Sync tick ($16.67\text{ms}$ at 60Hz or $8.33\text{ms}$ at 120Hz), the compositor adjusts the 4x4 transformation matrix directly in GPU vertex shaders.
+3. **Main thread decoupling:** Even if JavaScript execution on the Main Thread hangs due to heavy computation, the compositor animation continues running at a flawless 60/120 FPS.
