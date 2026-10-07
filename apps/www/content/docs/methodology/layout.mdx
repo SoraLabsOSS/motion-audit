@@ -1,0 +1,58 @@
+---
+title: Layout Geometry Recalculation, Forced Synchronous Layout, and LoAF
+description: Comprehensive review of Layout/Reflow performance, Paul Irish's DOM triggers, thrashing mechanics, and Long Animation Frames API.
+sidebarTitle: Layout & Thrashing
+---
+
+# Layout Recalculation and Layout Thrashing
+
+## 1. The Cost of Layout (Reflow)
+
+Layout is the computational phase where Blink calculates the geometric positions, bounding boxes, and dimensional constraints of all DOM nodes:
+
+- **Algorithmic Complexity:** Geometry calculation is typically $\mathcal{O}(N)$ or $\mathcal{O}(N \log N)$ with respect to affected DOM depth.
+- **Cascading Effects:** Mutating geometry properties (`width`, `height`, `top`, `left`, `margin`, `padding`, `flex-basis`, `font-size`) invalidates the geometry of the mutated element, its descendants, and potentially all sibling and ancestor flow nodes.
+- **Full Pipeline Invalidation:** When layout occurs, the browser MUST rerun **Paint** and **Composite** consecutively.
+
+---
+
+## 2. Forced Synchronous Layout and Layout Thrashing
+
+### Standard Browser Optimization:
+
+Under normal operation, the browser batches style and DOM mutations, calculating layout once per frame immediately before the V-Sync deadline.
+
+### Forced Synchronous Layout (FSL):
+
+As cataloged by Paul Irish in _"What forces layout / reflow"_:
+
+- If JavaScript modifies the DOM (a **Write**) and subsequently queries geometric layout properties (a **Read**) in the same task, the browser CANNOT wait for the next frame tick.
+- It is forced to pause JavaScript execution and synchronously calculate layout immediately on the Main Thread.
+
+### Triggering Layout Reads:
+
+- Bounding metrics: `offsetWidth`, `offsetHeight`, `offsetLeft`, `offsetTop`, `clientWidth`, `clientHeight`.
+- Scroll offsets: `scrollWidth`, `scrollHeight`, `scrollLeft`, `scrollTop`.
+- Spatial queries: `getBoundingClientRect()`, `getClientRects()`.
+- Computed styles: `window.getComputedStyle()`.
+
+### Layout Thrashing:
+
+Occurs when FSL happens in a loop inside an animation frame:
+
+```javascript
+// Catastrophic pattern: O(N) forced reflows per frame
+for (let i = 0; i < items.length; i++) {
+  items[i].style.width = items[i].offsetWidth + 10 + "px"; // Read forces reflow -> Write dirty marks
+}
+```
+
+---
+
+## 3. Long Animation Frames API (LoAF) - Modern Performance Standard
+
+- **Limitation of Legacy Long Tasks:** The legacy Long Tasks API flags tasks $> 50\text{ms}$, but cannot isolate render delay versus script delay within frame boundaries.
+- **W3C Long Animation Frames (LoAF):** Available in Chromium 123+:
+  - Observes frames with total duration $> 50\text{ms}$.
+  - Measures `blockingDuration`, `renderDuration`, `styleAndLayoutStart`, and exact script attribution.
+  - Integrating LoAF via `PerformanceObserver({ type: 'long-animation-frame' })` provides direct, objective empirical confirmation of layout thrashing jank.

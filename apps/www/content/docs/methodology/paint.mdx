@@ -1,0 +1,38 @@
+---
+title: Skia Rasterization, Paint Properties, and Fillrate Constraints
+description: Analysis of the Skia 2D graphics engine, pixel color formats, paint-invalidating CSS properties, and fragment shader fillrate scaling.
+sidebarTitle: Paint & Rasterization
+---
+
+# Skia Rasterization and Paint Pipeline
+
+## 1. Skia 2D Engine and Memory Footprint
+
+Chromium delegates rasterization to the **Skia 2D Graphics Library** (`//third_party/skia`).
+
+- **Color Allocation:** Textures are allocated in 32-bit depth using `kRGBA_8888_SkColorType`.
+- **Byte Depth:** Each pixel represents 4 channels: $$\text{Red (8-bit)} + \text{Green (8-bit)} + \text{Blue (8-bit)} + \text{Alpha (8-bit)} = 32\text{ bits} = 4\text{ bytes}$$
+- Every rasterized layer uploaded to the GPU as an OpenGL/Vulkan texture consumes: $$\text{Bytes} = \text{PixelWidth} \times \text{PixelHeight} \times 4$$
+
+---
+
+## 2. The Paint Invalidation Boundary
+
+According to Paul Lewis and Paul Irish's _CSS Triggers_:
+
+- Properties that affect visual styling without changing geometric boundaries bypass the **Layout** stage, but trigger immediate **Paint (Rasterization)** and **Compositing**:
+  - Surface styling: `background-color`, `background-image`, `box-shadow`, `border-color`, `border-radius`, `outline`.
+  - Text decorations: `color`, `text-decoration`, `text-shadow`.
+  - Dynamic variables: CSS Custom Properties (`--*`), because their mutation necessitates computed style recalculation and broad subtree repaint.
+
+---
+
+## 3. Fillrate and Surface Area Scaling Law
+
+In computer graphics and GPU architecture, **Fillrate** is the rate at which a GPU can render pixels to the frame buffer:
+
+$$\text{Raster Cost} \propto \text{Area}_{\text{paint}} = W_{\text{element}} \times H_{\text{element}} \times \text{DPR}^2$$
+
+- **Small surface area:** A $32 \times 32\text{px}$ toggle switch animating `background-color` invalidates roughly $1\text{KB}$ of pixel data. The GPU handles this in sub-millisecond raster passes.
+- **Large surface area:** A full-screen dialog ($1920 \times 1080\text{px}$, DPR 2) animating `box-shadow` invalidates $\approx 8.3\text{ million physical pixels}$ per frame ($\approx 33\text{MB}$ of raw raster throughput per tick).
+- **Conclusion for Scoring:** A linear or clamped scaling multiplier based on $\text{PaintArea} / \text{ViewportArea}$ is mathematically essential to prevent disproportionate penalties on small UI widgets while aggressively flagging large viewport repaints.
