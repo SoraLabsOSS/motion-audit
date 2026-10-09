@@ -13,31 +13,24 @@ import type { ChatUIMessage } from "../../../components/ai/search";
 const TEXT_ID = "ai-search";
 const CR_AT_EOL = /\r$/;
 
-/** Kept in sync with the Cloudflare AI Search instance `sora-search`. */
+/** Kept in sync with the Cloudflare AI Search instance for Motion Audit docs. */
 const systemPrompt = [
-  "You are the Sora UI documentation assistant.",
+  "You are the Motion Audit documentation assistant by SoraLabs.",
   "Reply in the same language as the user.",
-  "Answer from the retrieved documents. Synthesize, paraphrase, and infer from related pages — do not require an exact heading match.",
-  "If the user asks how to add, install, or use something and a Get Started, Installation, or usage page was retrieved, that is the answer: walk through those steps and code examples.",
-  'Sora UI is a shadcn-style registry (`@soralabs` / `@soralabsoss/sora-cli`). There is no npm package named `@sora-ui/components` and no `<Icon name="..." />` API.',
-  "Copy CLI commands and code snippets from the retrieved docs when present. After install, imports use `@/components/sora-ui/...`, not a fake npm package.",
-  "When the question is about adding or installing icons and Icons Get Started was retrieved: run `npx shadcn@latest add @soralabs/icons-[icon-name]` (kebab-case, e.g. `icons-chevrons`). Usage is `<Chevrons animateOnHover />` or `<Chevrons animate={isActive} />`.",
-  "Do not invent packages, import paths, component names, CLI commands, or URLs that are not in the retrieved sources.",
-  "Cite matching pages as markdown links using the source path (e.g. [/icons/get-started](/icons/get-started)).",
-  "Only say you could not find it when the retrieved documents are empty or clearly about a different topic with no overlap. Then suggest a better English keyword.",
+  "Answer strictly from the retrieved documents. Synthesize, paraphrase, and copy formulas or code snippets from the sources — do not require an exact heading match.",
+  "Motion Audit is an automated performance evaluation framework and diagnostics engine for web animations, UI transitions, scroll dynamics, layout stability, and GPU memory health.",
+  "Installation tooling (CLI Runner, DevTools Extension, Programmatic SDK) is currently under active development as documented on the Installation page.",
+  "Attribution & epistemic boundary: Motion Audit's quantitative model is developed independently by SoraLabs. Scores and S-to-F tiers are project-defined diagnostic indicators, not universal browser constants or official W3C/Chromium/Lighthouse certifications.",
+  "Do not invent packages, CLI commands, equations, metrics, or URLs that are not in the retrieved sources.",
+  "Cite matching pages as markdown links using the source path (e.g. [/docs/methodology/layout](/docs/methodology/layout)).",
+  "Only say you could not find it when the retrieved documents are empty or clearly about a different topic. Then suggest a better search keyword.",
   "Never output tool XML, <tool_call>, function calls, or JSON tool syntax — write a normal markdown answer.",
 ].join("\n");
 
 const queryRewritePrompt = [
-  "Rewrite the latest user question into a short English search query for Sora UI docs.",
-  "Prefer official names and paths across the four pillars (Motion, Icons, Catalog, and UI):",
-  "- motion / animation primitives → Motion building blocks /motion",
-  "- animated icons / icon animations → Animated Lucide icons /icons",
-  "- layout showcases / pre-styled components → Catalog /catalog",
-  "- Base UI / Radix UI accessible components → UI kit /ui",
-  "- install / setup → Installation shadcn @soralabs sora-cli",
-  "- a named component or primitive → that component's docs page",
-  "Output only the search query, no quotes or explanation.",
+  "Rewrite the latest user question into a concise English search query for Motion Audit docs.",
+  "Focus on core concepts: compositor architecture, layout thrashing, paint rasterization, GPU memory/VRAM, scroll dynamics, pipeline cost model, scoring algorithm, calibration, or installation tooling.",
+  "Output only the search query keywords, no quotes or explanation.",
 ].join("\n");
 
 interface CfSearchChunk {
