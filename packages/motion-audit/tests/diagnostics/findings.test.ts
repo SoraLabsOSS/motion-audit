@@ -45,7 +45,9 @@ describe("Diagnostics Findings & AI Prompt Generation", () => {
     const gpuFinding = findings.find((f) => f.id === "gpu-vram-desktop");
     assert.ok(gpuFinding);
     assert.equal(gpuFinding.severity, "high");
-    assert.ok(gpuFinding.fixPrompt?.includes("https://site.com"));
+    assert.ok(
+      gpuFinding.fixPrompt?.includes("**Target URL:** https://site.com")
+    );
     assert.ok(gpuFinding.fixPrompt?.includes("Desktop VRAM"));
   });
 
