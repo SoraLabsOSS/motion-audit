@@ -50,11 +50,11 @@ jobs:
             exit 1
           fi
 
-      - name: Run Motion Audit tests
-        run: bun test packages/motion-audit/tests
-
       - name: Build Motion Audit
         run: bun run --cwd packages/motion-audit build
+
+      - name: Run Motion Audit tests
+        run: bun test packages/motion-audit/tests
 
       - name: Publish package
         working-directory: packages/motion-audit
