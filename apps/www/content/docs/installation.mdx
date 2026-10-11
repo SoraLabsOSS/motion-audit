@@ -3,14 +3,42 @@ title: Installation
 description: Getting started and installing Motion Audit.
 ---
 
-<Callout type="warning" title="Under Construction">
-Motion Audit is currently under active development. Installation instructions, npm packages, and CLI tooling will be available soon as we prepare the initial public release.
+<Callout type="info" title="Available now">
+The Motion Audit CLI is available on npm as
+`@soralasbs/motion-audit@0.1.0`. Browser extension and programmatic SDK
+integrations are planned separately and are not part of the current CLI
+package.
 </Callout>
 
-## Upcoming Tooling
+## CLI
 
-Motion Audit will be accessible across multiple developer environments:
+Run an audit without installing the package globally:
 
-- **CLI Runner**: Run automated audits against production URLs or local dev servers directly from your terminal or CI/CD pipelines.
-- **Browser Extension**: Real-time visual diagnostics, frame-rate profiling, and layer inspection inside Chromium DevTools.
-- **Programmatic SDK**: Integrate motion scoring into automated testing frameworks (Playwright, Puppeteer).
+```bash
+npx @soralasbs/motion-audit https://example.com
+```
+
+The CLI also accepts local development URLs and machine-readable output:
+
+```bash
+npx @soralasbs/motion-audit http://localhost:3000 --json
+npx @soralasbs/motion-audit https://example.com --threshold A
+```
+
+It uses Puppeteer and Chromium to inspect animation timelines, scroll
+behavior, layout thrashing, compositor layers, and modeled texture memory on
+desktop and mobile reference viewports.
+
+## Other integrations
+
+- **Browser Extension**: Planned real-time diagnostics and layer inspection
+  inside Chromium DevTools.
+- **Programmatic SDK**: The package currently exposes the audit runner and
+  related types for Node.js integrations; dedicated Playwright integration is
+  planned separately.
+
+If Chrome is not available in the environment, install it explicitly:
+
+```bash
+bunx @puppeteer/browsers install chrome
+```

@@ -3,7 +3,6 @@
   "pages": [
     "index",
     "measurement-provenance",
-    "cleanroom-protocol",
     "observations",
     "hypotheses",
     "layout",

@@ -10,15 +10,16 @@ This document analyzes publicly available information about MotionScore for rese
 </Callout>
 
 The implementation provenance rules and permitted public inputs are defined in
-[`cleanroom-protocol.mdx`](./cleanroom-protocol.mdx). Third-party artifacts are
-not used as implementation specifications or calibration oracles.
+the [Measurement Provenance and Methodology Boundaries](./measurement-provenance.mdx)
+page. Third-party artifacts are not used as implementation specifications or
+calibration oracles.
 
 <Callout title="Attribution and Independent Implementation" type="info">
-SoraLabs Motion Audit draws conceptual inspiration from publicly documented animation-performance auditing methodologies, notably MotionScore by Motion.dev ([https://score.motion.dev/methodology](https://score.motion.dev/methodology)).
+SoraLabs Motion Audit uses the publicly documented S-to-F grading hierarchy from MotionScore by Motion.dev ([https://score.motion.dev/methodology](https://score.motion.dev/methodology)) with permission.
 
 The project independently derives its technical quantitative model from browser rendering architecture, W3C web-platform specifications, Chromium compositor behavior, GPU memory and graphics-system principles, and empirical benchmarking.
 
-MotionScore's public methodology ([https://score.motion.dev/methodology](https://score.motion.dev/methodology)) is treated as a foundational research reference rather than an implementation dependency. SoraLabs does not reuse proprietary source code, internal closure heuristics, or unpublished assets.
+The permitted MotionScore reference is limited to the documented grading hierarchy and its conceptual rendering categories. SoraLabs does not reuse proprietary source code, internal closure heuristics, unpublished assets, or MotionScore output as a calibration oracle.
 
 Motion Audit's quantitative auditing rules, scoring model, calibration parameters, and TypeScript implementations are developed independently by SoraLabs.
 </Callout>
