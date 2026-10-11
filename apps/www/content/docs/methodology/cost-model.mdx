@@ -1,0 +1,109 @@
+---
+title: SoraLabs Animation & Motion Pipeline Cost Model
+description: Standards-based mathematical specification of pipeline invalidation stages, paint surface scaling, duration discount, and scroll contention.
+---
+
+# SoraLabs Motion Pipeline Cost Model
+
+## 1. Methodological Principle
+
+The SoraLabs model evaluates animations by measuring their intrinsic invalidation impact on the browser rendering pipeline rather than volatile frame-rate timers:
+
+$$\text{Base Score} = 100$$
+$$\text{Single Animation Penalty} = \min\left(75,\, \mathcal{P}_{\text{pipeline}} \cdot \mathcal{S}_{\text{paint}} \cdot \mathcal{D}_{\text{time}} \cdot \mathcal{M}_{\text{offscreen}}\right)$$
+$$\text{Single Animation Score} = \max\left(0,\, 100 - \text{Single Animation Penalty}\right)$$
+
+Both Desktop and Mobile viewports are evaluated against identical physical frame rendering deadlines (target 60Hz = 16.67ms, 120Hz = 8.33ms), eliminating arbitrary synthetic viewport multipliers.
+
+---
+
+## 2. Pipeline Invalidation Stages ($\mathcal{P}_{\text{pipeline}}$)
+
+Informed by Chromium Blink `CSSPropertyMetadata` and W3C CSS Transforms / Animations specifications, the scoring model classifies properties into operational pipeline candidates. This is a heuristic classification, not a guarantee of runtime execution:
+
+```typescript
+export const PIPELINE_COSTS = {
+  COMPOSITOR: 0,   // Transform, Opacity, Filter, ClipPath (GPU off-thread via cc::AnimationHost)
+  CSS_VARIABLE: 15, // Unregistered custom properties (--*) forcing style recalculations
+  PAINT: 20,       // Background, Shadows, Borders (Main-thread raster invalidation)
+  LAYOUT: 50,      // Geometric reflow (Width, Height, Top, Left, Flex/Grid geometry)
+} as const;
+```
+
+- **Compositor ($\mathcal{P} = 0$):** Treated as a compositor candidate. Actual promotion and main-thread work depend on element state, browser version, and animation context.
+- **CSS Variable ($\mathcal{P} = 15$):** Unregistered custom properties (`--*`) force cascading computed style invalidation across all dependent subtree elements.
+- **Paint ($\mathcal{P} = 20$):** Triggers main-thread raster invalidation (`PaintInvalidationReason`), requiring tile re-rasterization without modifying element geometry. This includes background, border colors/radii, box shadows, text decorations, and SVG visual styling (`fill`, `stroke-*`).
+- **Layout ($\mathcal{P} = 50$):** Forces synchronous tree reflow (`LayoutObject::UpdateLayout`), cascading through style, layout, paint, and composite phases. This includes box geometry (`width`, `height`, `top`, `left`, `margin`, `padding`), flex/grid structures, and SVG path geometry (`d`, `points`, `viewBox`).
+
+---
+
+## 3. Surface Area Scaling Multiplier ($\mathcal{S}_{\text{paint}}$)
+
+For paint-invalidating properties, the penalty scales with the ratio of invalidated paint surface to total viewport surface area relative to a baseline interactive component footprint ($10\%$ of viewport):
+
+$$\rho = \frac{\text{Area}_{\text{paint}}}{\text{Area}_{\text{viewport}}}$$
+$$\mathcal{S}_{\text{paint}} = \text{clamp}\left(0.25,\, 4.0,\, \frac{\rho}{0.10}\right)$$
+
+- **Micro-repaints ($\rho < 0.025$):** Discounted to $0.25\times$.
+- **Reference area ($\rho = 0.10$ or $10\%$ screen area):** Multiplier is exactly $1.0\times$.
+- **Macro-repaints ($\rho \ge 0.40$ or $40\%$ screen area):** Amplified up to maximum ceiling of $4.0\times$.
+
+---
+
+## 4. Duration Discount Factor ($\mathcal{D}_{\text{time}}$)
+
+Following the Google RAIL Performance Model, micro-interactions completed under $100\text{ms}$ are perceived as instantaneous by human visual perception and receive a proportionate discount:
+
+$$\mathcal{D}_{\text{time}} = \text{clamp}\left(0.25,\, 1.0,\, \frac{\text{Duration}_{\text{ms}}}{100}\right)$$
+
+---
+
+## 5. Selective Offscreen Mutation Penalty ($\mathcal{M}_{\text{offscreen}}$)
+
+Grounded in Chromium Blink rendering pipeline mechanics:
+- **Pre-Raster Lookahead Horizon Buffer:** Modern compositors maintain a lookahead buffer around the visible viewport. Elements located within a **$400\text{px}$ horizon buffer** of the viewport boundary ($-400\text{px} \le Y_{\text{rect}} \le H_{\text{viewport}} + 400\text{px}$) are actively cached in the raster pipeline and are not classified as offscreen.
+- **Compositor Properties (`transform`, `opacity`):** Remain unpenalized ($\mathcal{M}_{\text{offscreen}} = 1.0$) even when running outside the visible viewport. Their memory footprint is already accounted for in GPU VRAM auditing; penalizing them again would constitute double-penalization.
+- **Layout & Paint Properties:** Modifying geometry (`width`, `height`, `top`) or rasterizing pixels outside the $400\text{px}$ lookahead boundary burns main-thread CPU cycles and battery without visual utility. These mutations incur an amplified penalty multiplier:
+  $$\mathcal{M}_{\text{offscreen}} = 1.5$$
+
+---
+
+## 6. Scroll Pipeline Overhead ($\mathcal{P}_{\text{scroll}}$)
+
+Scroll responsiveness is evaluated based on main-thread decoupling and event loop dispatch queue pressure:
+
+- **Off-Thread Declarative Scrolling (W3C CSS Scroll-Driven Animations & `IntersectionObserver`):**
+  Runs directly on the browser compositor thread with zero script execution latency. No listener penalty is incurred.
+
+- **Main-Thread JavaScript Scroll Listeners:**
+  - **Listener Contention Saturation:** Listener volume introduces event queue overhead scaling logarithmically:
+    $$\mathcal{P}_{\text{contention}} = \min\left(30,\, \text{round}\left(7 \times \log_2(1 + N_{\text{listeners}})\right)\right)$$
+  - **Non-Passive Blocking Penalty:** Listeners registered without `{ passive: true }` force the compositor thread to wait on main-thread execution before scrolling:
+    $$\mathcal{P}_{\text{passive}} = \min\left(15,\, N_{\text{non\_passive}} \times 5\right)$$
+  - **Frame Rate Synchronization:** Handlers lacking `requestAnimationFrame` or debouncing lead to uncoordinated style recalculations during scrolling:
+    $$\mathcal{P}_{\text{scheduling}} = \min\left(15,\, N_{\text{unoptimized}} \times 3\right)$$
+  - **Synchronous Layout Invalidation:** Scroll event handlers that trigger forced synchronous reflow incur a dedicated pipeline stall penalty:
+    $$
+    \mathcal{P}_{\text{layout}} =
+    \begin{cases}
+    20 & \text{if layout thrashing detected on scroll} \\
+    0 & \text{otherwise}
+    \end{cases}
+    $$
+  - **Composite Scroll Overhead:**
+    $$\mathcal{P}_{\text{scroll}} = \min\left(60,\, \mathcal{P}_{\text{contention}} + \mathcal{P}_{\text{passive}} + \mathcal{P}_{\text{scheduling}} + \mathcal{P}_{\text{layout}}\right)$$
+
+---
+
+## 7. Primary Internet References
+
+- **Chromium Blink CSSPropertyMetadata (Style/Layout/Paint Invalidation Classification):**  
+  [https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/css/css_property_metadata.h](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/css/css_property_metadata.h)
+- **Google CSSTriggers Reference (Rendering Lifecycle Triggers):**  
+  [https://csstriggers.com/](https://csstriggers.com/)
+- **W3C CSS Scroll-Driven Animations Specification:**  
+  [https://www.w3.org/TR/scroll-animations-1/](https://www.w3.org/TR/scroll-animations-1/)
+- **W3C Passive Event Listeners Specification:**  
+  [https://dom.spec.whatwg.org/#dom-addeventlisteneroptions-passive](https://dom.spec.whatwg.org/#dom-addeventlisteneroptions-passive)
+- **Google Lighthouse Scroll Responsiveness Audit:**  
+  [https://web.dev/articles/uses-passive-event-listeners](https://web.dev/articles/uses-passive-event-listeners)

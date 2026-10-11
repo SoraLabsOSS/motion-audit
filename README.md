@@ -1,157 +1,107 @@
-# Turborepo starter
+# SoraLabs Motion Audit
 
-This Turborepo starter is maintained by the Turborepo core team.
+Standards-informed web animation and motion performance auditing from SoraLabs. The repository contains the Motion Audit engine and CLI, together with the documentation site and shared workspace packages.
 
-## Using this example
+## Motion Audit CLI
 
-Run the following command:
+Run an audit without installing the CLI globally:
 
-```sh
-npx create-turbo@latest
+```bash
+npx @soralasbs/motion-audit https://example.com
+npx @soralasbs/motion-audit http://localhost:3000 --ai
 ```
 
-## What's inside?
+The CLI uses Puppeteer and Chromium to inspect animation timelines, scroll handlers, layout thrashing, compositor layers, and modeled texture memory on desktop and mobile reference viewports.
 
-This Turborepo includes the following packages/apps:
+Common commands:
 
-### Apps and Packages
+```bash
+# Machine-readable output
+npx @soralasbs/motion-audit https://example.com --json
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@workspace/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@workspace/typescript-config`: `tsconfig.json`s used throughout the monorepo
+# Generate an AI remediation brief
+npx @soralasbs/motion-audit https://example.com --ai
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+# Fail CI when the result is worse than Tier A
+npx @soralasbs/motion-audit https://example.com --threshold A
 
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [Ultracite](https://github.com/ultracite/ultracite) (Oxlint + Oxfmt) for code linting and formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+# Generate a GitHub README badge and compact report
+npx @soralasbs/motion-audit https://example.com --badge
+npx @soralasbs/motion-audit https://example.com --summary motion-audit.json
 ```
 
-Without global `turbo`, use your package manager:
+See [`packages/motion-audit/README.md`](./packages/motion-audit/README.md) for the complete CLI reference, programmatic API, Chromium setup, exit codes, and development commands.
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn exec turbo build
-pnpm exec turbo build
+## Documentation
+
+The documentation site is in [`apps/www`](./apps/www). It contains the Motion Audit methodology, browser rendering research, calibration notes, and measurement-provenance boundaries.
+
+Run it locally:
+
+```bash
+bun run dev:www
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Then open [http://localhost:3000](http://localhost:3000).
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Repository structure
 
-```sh
-turbo build --filter=docs
+```text
+apps/
+└── www/                    Documentation and research site
+packages/
+├── motion-audit/           Auditing engine, CLI, and public API
+├── ui/                     Shared UI components
+└── typescript-config/      Shared TypeScript configuration
 ```
 
-Without global `turbo`:
+## Development
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+This is a Bun workspace managed with Turborepo. Install dependencies from the repository root:
+
+```bash
+bun install
 ```
 
-### Develop
+Build all apps and packages:
 
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+```bash
+bun run build
 ```
 
-Without global `turbo`, use your package manager:
+Run checks:
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```bash
+bun run check-types
+bun run lint
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Run Motion Audit tests and build:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
+```bash
+bun test packages/motion-audit/tests
+bun run --cwd packages/motion-audit build
+bun run --cwd packages/motion-audit check-types
 ```
 
-Without global `turbo`:
+Build the documentation site:
 
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+bun run --cwd apps/www build
 ```
 
-### Remote Caching
+## Methodology
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+Motion Audit separates:
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+1. **Public facts** from W3C specifications, Chromium documentation, and CDP.
+2. **Observable measurements** collected from a running browser.
+3. **Project calibration** such as scoring weights, thresholds, and tier bands.
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+The S-to-F tiers are operational diagnostic signals for controlled comparisons. They are not W3C, Chromium, Lighthouse, Core Web Vitals, or hardware certifications.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Read the methodology documentation at [`apps/www/content/docs/methodology`](./apps/www/content/docs/methodology).
 
-```sh
-cd my-turborepo
-turbo login
-```
+## License
 
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+MIT

@@ -1,0 +1,125 @@
+---
+title: SoraLabs Scoring Aggregation and Grading Algorithm
+description: Four-pillar viewport aggregation, animation timeline concurrency modeling, Chromium Cumulative Reflow layout analysis, and S-to-F tier ladder mapping.
+---
+
+# SoraLabs Scoring Aggregation and Grading
+
+## 1. Animation Timeline Concurrency Load
+
+When evaluating multi-animation choreographies, main-thread script execution and compositor commit load are assessed using timeline concurrency modeling:
+
+$$\mathcal{C}_{\text{effective}} = \text{round}\left(0.6 \cdot \bar{C}_{\text{active}} + 0.4 \cdot C_{\text{peak}}\right)$$
+
+- $\bar{C}_{\text{active}}$: Mean concurrent active animations across the interaction duration.
+- $C_{\text{peak}}$: Peak simultaneous animations executing concurrently.
+- The implementation also reports P75 concurrency as a diagnostic distribution statistic; the effective score currently uses mean and peak, not P75.
+- **Rationale:** Grounded in W3C Web Animations API active timeline states, balancing sustained average workload against peak scheduling contention spikes without relying on arbitrary synthetic sample cutoffs.
+
+---
+
+## 2. Chromium Cumulative Reflow Analysis (CRA)
+
+Forced synchronous layouts (Layout Thrashing) are evaluated using the Chromium Cumulative Reflow model grounded in Blink's rendering pipeline and Google RAIL frame budget standards (16.67ms frame deadline, 50ms user input response budget):
+
+- **Base Reflow Cost:**
+  - Layout reflow: $\mathcal{B}_{\text{layout}} = 5$ pts/event.
+  - Style recalculation: $\mathcal{B}_{\text{style}} = 2$ pts/event.
+- **Mount/Initialization Phase Deduplication:** Setup queries and framework hydration during initial DOM load (`frame === 0` or `phase === 'init'`) are deduplicated per API/selector target to reflect standard framework lifecycle behavior:
+  - Base setup cost: Layout = 3 pts, Style = 1 pt.
+  - Hard ceiling: $\text{InitPenalty} \le 15$ pts.
+- **Invalidation Scope Multiplier:** Mutations on document root containers (`body`, `html`, `#root`, `#__next`) invalidate the entire Render Tree, scaling the base cost by a $1.5\times$ scope factor ($\mathcal{S}_{\text{scope}} = 1.5$). Leaf subtree mutations remain at $1.0\times$.
+- **Intra-Frame Selector Clustering & Compounding:** Violations within each frame are clustered by DOM target selector (`Map.groupBy`), evaluating both repetitive query chains on the same element and concurrent multi-element reflows:
+  - Repetition factor across the same selector chain ($k$ reads/writes):
+    $$
+    \mathcal{M}_{\text{chain}} =
+    \begin{cases}
+    1.0 & \text{if } k \le 1 \\
+    \min\left(3.5,\, 1.0 + \log_2(k) \times 1.2\right) & \text{if } k > 1
+    \end{cases}
+    $$
+  - Distinct selectors compounding within the same frame ($m$ distinct selectors):
+    $$
+    \mathcal{M}_{\text{distinct}} =
+    \begin{cases}
+    1.0 & \text{if } m \le 1 \\
+    \min\left(1.5,\, 1.0 + \log_2(m) \times 0.4\right) & \text{if } m > 1
+    \end{cases}
+    $$
+- **Sustained Jank Multiplier:** Reflows spanning continuous consecutive frames exceed the 50ms Google RAIL interaction threshold (~3 frames at 60Hz), creating perceptible frame drops. A burst of $\ge 8$ continuous frames exhausts the frame budget entirely:
+  $$
+  \mathcal{M}_{\text{consecutive}} =
+  \begin{cases}
+  2.5 & \text{if } \text{MaxConsecutiveFrames} \ge 8 \\
+  1.0 + \min\left(1.5,\, \frac{\text{MaxConsecutiveFrames}}{3} \times 0.5\right) &
+    \text{otherwise}
+  \end{cases}
+  $$
+- **Final Penalty & Score:**
+  $$\text{Penalty} = \min(100,\, \text{round}(\text{RuntimePenalty} \cdot \mathcal{M}_{\text{consecutive}} + \text{InitPenalty})), \quad \text{Score} = \max(0,\, 100 - \text{Penalty})$$
+
+---
+
+## 3. Four-Pillar Viewport Aggregation
+
+### 3.1. Animation Population Bottleneck Coupling
+
+In Chromium rendering architecture, animations executing on the main thread (Layout / Paint) stall the 16.6ms frame budget regardless of how many lightweight compositor animations coexist. Rather than using an arithmetic mean that dilutes severe defects, the animation pillar blends the worst offender with the population mean:
+
+$$\text{CombinedScore} = \text{round}\left(0.3 \cdot \text{WorstScore} + 0.7 \cdot \bar{S}_{\text{population}}\right)$$
+
+If multiple animations coexist ($N \ge 3$) and the worst offender represents a catastrophic failure ($\text{WorstScore} < 15$), an empirical ceiling of $59$ (Tier B maximum) is enforced.
+
+### 3.2. Viewport Pillar Weights and Pipeline Coupling
+
+Each viewport (Desktop and Mobile) calculates a composite score across the weighted pillars that are available:
+
+| Pillar                | Metric Focus                                         | Weight ($\omega_i$) |
+| :-------------------- | :--------------------------------------------------- | :------------------ |
+| **Animations**        | Keyframes, WAAPI, pipeline invalidation stage        | $0.35$ ($35\%$)     |
+| **Scroll Dynamics**   | Scroll timelines, passive listener compliance        | $0.25$ ($25\%$)     |
+| **Layout Thrashing**  | Interleaved DOM read/write reflow chains             | $0.25$ ($25\%$)     |
+| **GPU VRAM Pressure** | Composited layer count, texture RAM, tiled scrollers | $0.15$ ($15\%$)     |
+
+$$\text{RawViewportScore} = \text{round}\left(\sum \text{Score}_i \cdot \omega_i\right)$$
+
+When a pillar is unavailable, the implementation renormalizes over the supplied pillars. Missing telemetry must not be represented as a measured zero or a perfect score; callers should provide an explicit neutral/unavailable result when they need that signal included.
+
+**Pipeline Bottleneck Coupling (Amdahl's Law):**
+Main-thread frame execution is strictly sequential (Script $\to$ Layout $\to$ Paint $\to$ Composite). A catastrophic breakdown in any single pillar creates a hard frame-rate bottleneck. Thus:
+- If $\min(\text{Score}_i) < 15 \implies \text{ViewportScore} \le 59$ (Tier B ceiling).
+- If $\min(\text{Score}_i) < 30 \implies \text{ViewportScore} \le 75$ (Tier A ceiling).
+
+---
+
+## 4. The S-to-F Operational Tier Ladder
+
+Numeric scores translate into discrete **project-defined operational tiers**. These labels are not industry certification levels or official browser performance grades:
+
+| Tier  | Score Range   | Operational Meaning                                                |
+| :---- | :------------ | :----------------------------------------------------------------- |
+| **S** | $[80,\, 100]$ | Pristine. Compositor-only, minimal VRAM, 0 thrashing.              |
+| **A** | $[60,\, 79]$  | Smooth. Negligible main-thread impact, within hardware limits.     |
+| **B** | $[40,\, 59]$  | Acceptable. Minor paint overhead or isolated reflow.               |
+| **C** | $[20,\, 39]$  | Degraded. Significant paint or unbatched layout work.              |
+| **D** | $[10,\, 19]$  | Poor. Continuous layout animations, elevated memory pressure.      |
+| **F** | $[0,\, 9]$    | Critical. Uncontrolled layout thrashing, extreme jank risk.        |
+
+The overall audit grade synthesizes Desktop and Mobile results:
+$$\text{OverallScore} = \text{round}\left(\frac{\text{DesktopScore} + \text{MobileScore}}{2}\right)$$
+$$\text{OverallTier} = \text{averageTier}(\text{DesktopTier},\, \text{MobileTier})$$
+
+---
+
+## 5. Primary Internet References
+
+- **Google RAIL Interaction Model ($16.6\text{ms}$ / $50\text{ms}$ / $100\text{ms}$):**  
+  [https://web.dev/articles/rail](https://web.dev/articles/rail)
+- **Google web.dev: Avoid Large, Complex Layouts and Layout Thrashing:**  
+  [https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing](https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing)
+- **W3C Long Animation Frames API (LoAF):**  
+  [https://w3c.github.io/long-animation-frames/](https://w3c.github.io/long-animation-frames/)
+- **NIST Percentile Calculation Standard (Section 1.3.5.9):**  
+  [https://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm](https://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm)
+- **Chromium Blink Invalidation Pipeline (`LayoutObject::UpdateLayout`):**  
+  [https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/layout/layout_object.cc](https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/layout/layout_object.cc)

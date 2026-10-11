@@ -1,0 +1,61 @@
+---
+title: GPU Memory Footprint, Device Pixel Ratio, and Tiled Backing Stores
+description: Mathematical derivation of theoretical raw texture memory, device pixel ratio quadratic scaling, and Chromium's tiled buffer modeling.
+---
+
+# GPU Memory Footprint and Tiled Backing Stores
+
+## 1. Mathematical Derivation of Raw Texture Memory Estimate
+
+### Theoretical Baseline:
+
+For any rectangular DOM element promoted to an independent GPU compositor layer with CSS dimensions $W$ (width in CSS pixels) and $H$ (height in CSS pixels), operating on a display with Device Pixel Ratio $\text{DPR} = \delta$, the **theoretical raw texture-memory estimate** $\mathcal{M}_{\text{raw}}$ is:
+
+$$\mathcal{M}_{\text{raw}} = W \cdot H \cdot 4 \cdot \delta^2 \quad \text{bytes}$$
+
+### Derivation:
+
+1. Under W3C CSS Values and Units Module, 1 CSS pixel corresponds to $\delta$ physical device pixels along each axis:
+   $$W_{\text{physical}} = W \cdot \delta, \quad H_{\text{physical}} = H \cdot \delta$$
+2. Total discrete physical pixels $P$:
+   $$P = W_{\text{physical}} \cdot H_{\text{physical}} = (W \cdot \delta) \cdot (H \cdot \delta) = W \cdot H \cdot \delta^2$$
+3. Under the standardized RGBA8888 bitmap allocation (`SkColorType::kRGBA_8888`), each discrete pixel allocates 4 bytes (Red, Green, Blue, Alpha, 8 bits each):
+   $$\mathcal{M}_{\text{raw}} = P \cdot 4\text{ bytes} = W \cdot H \cdot 4 \cdot \delta^2 \quad \blacksquare$$
+
+> **Precision Boundary:**
+> $\mathcal{M}_{\text{raw}}$ models the uncompressed pixel surface data. Total runtime GPU VRAM footprint additionally includes texture alignment boundaries, mipmap hierarchies, GPU driver allocation overhead, and surface swap chains.
+
+---
+
+## 2. Desktop vs Mobile Retina Scaling Disparity
+
+The quadratic factor $\delta^2$ creates dramatic memory amplification across device tiers:
+
+| Device Viewport            | Dimensions ($W \times H$) | DPR ($\delta$) | Density Factor ($\delta^2$) | Raw Full-Screen Texture Estimate |
+| :------------------------- | :------------------------ | :------------- | :-------------------------- | :------------------------------- |
+| **Standard Desktop**       | $1440 \times 900$         | $1$            | $1\times$                   | $\approx 5.18\text{ MB}$         |
+| **Retina Desktop**         | $1440 \times 900$         | $2$            | $4\times$                   | $\approx 20.73\text{ MB}$        |
+| **Mobile Retina (iPhone)** | $390 \times 844$          | $3$            | $9\times$                   | $\approx 11.85\text{ MB}$        |
+| **High-Res Desktop 4K**    | $3840 \times 2160$        | $2$            | $4\times$                   | $\approx 132.71\text{ MB}$       |
+
+**Mobile Implication (WebKit Unified Memory Pressure):**
+Mobile GPUs share unified system memory (RAM). When an iOS Safari or Chrome tab exceeds the operating system's strict memory budget, the kernel `Jetsam` process terminates the tab. A mobile page with 15–20 promoted layers can rapidly allocate $> 300\text{MB}$ of raw texture surfaces, inducing severe memory pressure.
+
+---
+
+## 3. Chromium-Derived Tiled Backing Store Model
+
+In Chromium's Compositor architecture (`//src/cc/tiles/tile_manager.cc` and `picture_layer_tiling_set.cc`):
+
+- Root scrolling layers cannot be allocated as a single monolithic texture due to GPU texture size limits ($4096\text{px}$ or $8192\text{px}$).
+- Layers are divided into discrete tiles ($256 \times 256\text{px}$ or $512 \times 512\text{px}$).
+- **Pre-rasterization Horizon:** To mitigate checkerboarding during fast fling-scrolling, Chromium pre-rasters margin buffers around the visible viewport.
+
+### SoraLabs Model Formulation:
+
+Chromium's tiled compositor architecture divides scrollable raster layers into discrete $256 \times 256\text{px}$ tiles (`cc::TileManager::kDefaultTileSize`). Tiled scrollers allocate memory for the visible display area plus a pre-paint raster lookahead horizon:
+
+$$\text{Tiles}_X = \left\lceil \frac{W_{\text{viewport}} \cdot \delta}{256} \right\rceil, \quad \text{Tiles}_Y = \left\lceil \frac{H_{\text{raster}} \cdot \delta}{256} \right\rceil$$
+$$\mathcal{M}_{\text{tiled\_buffer}} = N_{\text{scrollers}} \cdot \left(\text{Tiles}_X \cdot \text{Tiles}_Y \cdot 256^2 \cdot 4\right)$$
+
+This discrete tile pooling formulation is a theoretical tiled-backing estimate. It is not a complete physical VRAM measurement: tile size, raster policy, compression, driver allocation, swap chains, and memory pressure vary by browser version and device.

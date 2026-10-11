@@ -3,10 +3,16 @@
   "pages": [
     "index",
     "measurement-provenance",
+    "cleanroom-protocol",
+    "observations",
     "hypotheses",
     "layout",
     "paint",
     "compositor",
+    "gpu-memory",
+    "cost-model",
+    "scoring",
+    "calibration",
     "score-experiments"
   ]
 }

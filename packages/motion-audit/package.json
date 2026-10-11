@@ -1,5 +1,5 @@
 {
-  "name": "@soralabs/motion-audit",
+  "name": "@soralasbs/motion-audit",
   "version": "0.1.0",
   "description": "Independent Web Animation & Motion Performance Auditor",
   "homepage": "https://motion.soralabs.studio",
@@ -10,7 +10,7 @@
     "url": "git+https://github.com/SoraLabsOSS/motion-audit.git"
   },
   "bin": {
-    "motion-audit": "./bin/motion-audit.js"
+    "motion-audit": "bin/motion-audit.js"
   },
   "files": [
     "dist",
@@ -24,8 +24,14 @@
   },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "check-types": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test tests",
+    "test:math": "bun test tests/math",
+    "bench:math": "bun bench/math/thrashing.bench.ts",
+    "bench:calibration": "bun bench/calibration/run.ts",
+    "bench": "bun bench:math && bun bench:calibration"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
@@ -33,7 +39,8 @@
     "puppeteer": "^25.12.0"
   },
   "devDependencies": {
-    "@types/node": "^22.15.0"
+    "@types/node": "^22.15.0",
+    "mitata": "^1.0.34"
   },
   "trustedDependencies": [
     "puppeteer"
