@@ -3,18 +3,18 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const BIN_PATH = path.resolve(import.meta.dir, "../../bin/motion-audit.js");
-const BUN_BIN = process.execPath;
+const RUNTIME_BIN = process.platform === "win32" ? process.execPath : "node";
 
 describe("clig.dev Standards Compliance Verification", () => {
   it("exits with code 2 and prints usage when no URL is provided", () => {
-    const res = spawnSync(BUN_BIN, [BIN_PATH], { encoding: "utf-8" });
+    const res = spawnSync(RUNTIME_BIN, [BIN_PATH], { encoding: "utf-8" });
     expect(res.status).toBe(2);
     expect(res.stderr).toContain("Target URL is required");
     expect(res.stdout).toContain("Usage:");
   });
 
   it("exits with code 2 when an invalid URL is provided", () => {
-    const res = spawnSync(BUN_BIN, [BIN_PATH, "invalid:::url"], {
+    const res = spawnSync(RUNTIME_BIN, [BIN_PATH, "invalid:::url"], {
       encoding: "utf-8",
     });
     expect(res.status).toBe(2);
@@ -22,13 +22,15 @@ describe("clig.dev Standards Compliance Verification", () => {
   });
 
   it("exits with code 0 on -h and --help", () => {
-    const resH = spawnSync(BUN_BIN, [BIN_PATH, "-h"], { encoding: "utf-8" });
+    const resH = spawnSync(RUNTIME_BIN, [BIN_PATH, "-h"], {
+      encoding: "utf-8",
+    });
     expect(resH.status).toBe(0);
     expect(resH.stdout).toContain(
       "Independent Web Animation & Motion Performance Auditor"
     );
 
-    const resHelp = spawnSync(BUN_BIN, [BIN_PATH, "--help"], {
+    const resHelp = spawnSync(RUNTIME_BIN, [BIN_PATH, "--help"], {
       encoding: "utf-8",
     });
     expect(resHelp.status).toBe(0);
@@ -36,11 +38,13 @@ describe("clig.dev Standards Compliance Verification", () => {
   });
 
   it("exits with code 0 on -v and --version", () => {
-    const resV = spawnSync(BUN_BIN, [BIN_PATH, "-v"], { encoding: "utf-8" });
+    const resV = spawnSync(RUNTIME_BIN, [BIN_PATH, "-v"], {
+      encoding: "utf-8",
+    });
     expect(resV.status).toBe(0);
     expect(resV.stdout.trim()).toBe("0.1.0");
 
-    const resVer = spawnSync(BUN_BIN, [BIN_PATH, "--version"], {
+    const resVer = spawnSync(RUNTIME_BIN, [BIN_PATH, "--version"], {
       encoding: "utf-8",
     });
     expect(resVer.status).toBe(0);
@@ -49,7 +53,7 @@ describe("clig.dev Standards Compliance Verification", () => {
 
   it("maintains strict stream isolation with --json (stdout is 100% valid JSON, stderr has 0 bytes)", () => {
     const res = spawnSync(
-      BUN_BIN,
+      RUNTIME_BIN,
       [BIN_PATH, "https://motion.soralabs.studio/", "--desktop-only", "--json"],
       {
         encoding: "utf-8",
@@ -67,7 +71,7 @@ describe("clig.dev Standards Compliance Verification", () => {
 
   it("maintains clean stdout in --ai mode and routes progress messages strictly to stderr", () => {
     const res = spawnSync(
-      BUN_BIN,
+      RUNTIME_BIN,
       [BIN_PATH, "https://motion.soralabs.studio/", "--desktop-only", "--ai"],
       {
         encoding: "utf-8",
@@ -84,7 +88,7 @@ describe("clig.dev Standards Compliance Verification", () => {
 
   it("emits clean non-TTY progress lines to stderr without ANSI cursor control sequences in non-TTY environments", () => {
     const res = spawnSync(
-      BUN_BIN,
+      RUNTIME_BIN,
       [BIN_PATH, "https://motion.soralabs.studio/", "--desktop-only"],
       {
         encoding: "utf-8",
@@ -99,7 +103,7 @@ describe("clig.dev Standards Compliance Verification", () => {
 
   it("enforces exit code 2 on connection failure", () => {
     const res = spawnSync(
-      BUN_BIN,
+      RUNTIME_BIN,
       [BIN_PATH, "http://127.0.0.1:59999", "--threshold", "S"],
       {
         encoding: "utf-8",
