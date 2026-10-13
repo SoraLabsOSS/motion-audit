@@ -17,10 +17,10 @@ import { baseOptions } from "@/app/layout.config";
 import { DocsAuthor } from "@/components/docs/docs-author";
 import { DocsHeaderToc } from "@/components/docs/docs-header-toc";
 import { DocsPageJsonLd } from "@/components/docs/docs-page-json-ld";
+import { DocsPager } from "@/components/docs/docs-pager";
+import type { DocsPagerItem } from "@/components/docs/docs-pager";
 import { Footer } from "@/components/docs/footer";
 import { PageActionButtons } from "@/components/docs/page-actions";
-import { DOCS_COMPONENTS_SECTION_URL } from "@/lib/docs/docs-nav-constants";
-import { getFirstPrimitiveDocUrl } from "@/lib/docs/get-first-primitive-doc-url";
 import { source } from "@/lib/docs/source";
 import {
   getOgMetadataImages,
@@ -29,20 +29,36 @@ import {
 import { GITHUB_REPO_URL, getPageAlternates, SITE_URL } from "@/lib/site";
 import { getMDXComponents } from "@/mdx-components";
 
-export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
-  const params = await props.params;
-
-  if (!source.getPage(params.slug)) {
-    await connection();
-    notFound();
-  }
-
-  return <DocsPageBody slug={params.slug} />;
+interface GuideLink {
+  text: string;
+  url: string;
 }
 
-async function DocsPageBody({ slug }: { slug?: string[] }) {
+const isGuideLink = (link: unknown): link is GuideLink => {
+  if (typeof link !== "object" || link === null) {
+    return false;
+  }
+  if (!("url" in link) || !("text" in link)) {
+    return false;
+  }
+  const hasExternal = "external" in link && Boolean(link.external);
+  return (
+    typeof link.url === "string" &&
+    typeof link.text === "string" &&
+    !hasExternal
+  );
+};
+
+const resolveNavItem = (url: string, fallbackName: string): DocsPagerItem => {
+  const pageData = source.getPageByHref(url)?.page;
+  return {
+    description: pageData?.data.description,
+    name: pageData?.data.sidebarTitle ?? pageData?.data.title ?? fallbackName,
+    url,
+  };
+};
+
+const DocsPageBody = ({ slug }: { slug?: string[] }) => {
   const page = source.getPage(slug);
   if (!page) {
     return null;
@@ -53,83 +69,48 @@ async function DocsPageBody({ slug }: { slug?: string[] }) {
   const tree = source.getPageTree();
   const { previous, next: nextPage } = findNeighbour(tree, page.url);
 
-  interface GuideLink {
-    text: string;
-    url: string;
-  }
-  const isGuideLink = (l: unknown): l is GuideLink => {
-    if (typeof l !== "object" || l === null) {
-      return false;
-    }
-    const obj = l as Record<string, unknown>;
-    return (
-      typeof obj.url === "string" &&
-      typeof obj.text === "string" &&
-      !obj.external
-    );
-  };
   const guideItems = (baseOptions.links ?? []).filter(isGuideLink);
   const guideIndex = guideItems.findIndex((it) => it.url === page.url);
-  const primitivesUrl = getFirstPrimitiveDocUrl();
 
-  const prevNav = (() => {
-    if (guideIndex !== -1 && guideItems.length > 0) {
-      if (guideIndex > 0) {
-        return {
-          name: guideItems[guideIndex - 1].text,
-          url: guideItems[guideIndex - 1].url,
-        } as const;
-      }
-      return;
+  const prevNav: DocsPagerItem | undefined = (() => {
+    if (guideIndex > 0 && guideItems.length > 0) {
+      const item = guideItems[guideIndex - 1];
+      return resolveNavItem(item.url, item.text);
     }
 
-    if (previous) {
-      return {
-        name: String(previous.name ?? "Précédent"),
-        url: previous.url,
-      } as const;
+    if (guideIndex === -1 && previous) {
+      return resolveNavItem(previous.url, String(previous.name ?? "Previous"));
     }
-
-    const isPrimitivesRoot = page.url === primitivesUrl;
-    const isSectionRoot =
-      page.url === DOCS_COMPONENTS_SECTION_URL || isPrimitivesRoot;
-
-    if (isSectionRoot && guideItems.length > 0) {
-      const last = guideItems.at(-1);
-      return { name: last?.text, url: last?.url } as const;
-    }
-
-    if (
-      page.url.startsWith("/docs/motion/") ||
-      page.url.startsWith("/docs/primitives/")
-    ) {
-      return { name: "Motion", url: primitivesUrl } as const;
-    }
-
-    return;
   })();
 
-  let nextNav: { url: string; name: string } | undefined;
-  if (guideIndex !== -1 && guideItems.length > 0) {
-    const nextGuideItem = guideItems[guideIndex + 1];
-    nextNav = nextGuideItem
-      ? { name: nextGuideItem.text, url: nextGuideItem.url }
-      : { name: "Motion", url: primitivesUrl };
-  } else if (nextPage) {
-    nextNav = { name: String(nextPage.name ?? "Suivant"), url: nextPage.url };
-  }
+  const nextNav: DocsPagerItem | undefined = (() => {
+    if (guideIndex !== -1 && guideIndex < guideItems.length - 1) {
+      const nextGuideItem = guideItems[guideIndex + 1];
+      return resolveNavItem(nextGuideItem.url, nextGuideItem.text);
+    }
+
+    if (guideIndex === -1 && nextPage) {
+      return resolveNavItem(nextPage.url, String(nextPage.name ?? "Next"));
+    }
+  })();
 
   return (
     <DocsPage
+      article={{
+        className: "[&>[role=none].flex-1]:hidden",
+      }}
       footer={{
         component: (
-          <Footer
-            lastUpdate={
-              page.data.lastModified
-                ? new Date(page.data.lastModified)
-                : undefined
-            }
-          />
+          <div className="flex w-full flex-col gap-6">
+            <DocsPager next={nextNav} previous={prevNav} />
+            <Footer
+              lastUpdate={
+                page.data.lastModified
+                  ? new Date(page.data.lastModified)
+                  : undefined
+              }
+            />
+          </div>
         ),
       }}
       full={page.data.full}
@@ -147,7 +128,7 @@ async function DocsPageBody({ slug }: { slug?: string[] }) {
             <Link
               aria-disabled={!prevNav}
               aria-label={
-                prevNav ? `Aller à ${prevNav.name}` : "Pas de page précédente"
+                prevNav ? `Go to ${prevNav.name}` : "No previous page"
               }
               className={prevNav ? undefined : "pointer-events-none opacity-50"}
               href={prevNav?.url ?? page.url}
@@ -158,9 +139,7 @@ async function DocsPageBody({ slug }: { slug?: string[] }) {
             </Link>
             <Link
               aria-disabled={!nextNav}
-              aria-label={
-                nextNav ? `Aller à ${nextNav.name}` : "Pas de page suivante"
-              }
+              aria-label={nextNav ? `Go to ${nextNav.name}` : "No next page"}
               className={nextNav ? undefined : "pointer-events-none opacity-50"}
               href={nextNav?.url ?? page.url}
             >
@@ -185,7 +164,7 @@ async function DocsPageBody({ slug }: { slug?: string[] }) {
         url={page.url}
       />
 
-      <DocsBody className="pt-4 pb-10" id="docs-body">
+      <DocsBody className="pt-4 pb-6" id="docs-body">
         <MDXContent
           components={getMDXComponents({
             a: createRelativeLink(source, page),
@@ -194,15 +173,26 @@ async function DocsPageBody({ slug }: { slug?: string[] }) {
       </DocsBody>
     </DocsPage>
   );
-}
+};
 
-export async function generateStaticParams() {
-  return source.generateParams();
-}
+const Page = async (props: { params: Promise<{ slug?: string[] }> }) => {
+  const params = await props.params;
 
-export async function generateMetadata(props: {
+  if (!source.getPage(params.slug)) {
+    await connection();
+    notFound();
+  }
+
+  return <DocsPageBody slug={params.slug} />;
+};
+
+export default Page;
+
+export const generateStaticParams = () => source.generateParams();
+
+export const generateMetadata = async (props: {
   params: Promise<{ slug?: string[] }>;
-}): Promise<Metadata> {
+}): Promise<Metadata> => {
   const { slug = [] } = await props.params;
 
   const page = source.getPage(slug);
@@ -245,4 +235,4 @@ export async function generateMetadata(props: {
       title: `${title} | Motion Audit`,
     },
   };
-}
+};

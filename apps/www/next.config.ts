@@ -1,19 +1,12 @@
-import path from "node:path";
-
 import "./env";
-import { fileURLToPath } from "node:url";
-
 import bundleAnalyzer from "@next/bundle-analyzer";
 import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
-
-import { buildDocRedirects } from "./lib/docs/build-doc-redirects";
 
 const withMDX = createMDX();
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
-const appRoot = import.meta.dirname;
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -33,7 +26,7 @@ const nextConfig: NextConfig = {
     // babel-plugin-react-compiler if disabled; safe to try on Preview.
     turbopackRustReactCompiler: true,
   },
-  async headers() {
+  headers() {
     return [
       {
         headers: [
@@ -60,8 +53,6 @@ const nextConfig: NextConfig = {
         source: "/:path*",
       },
       {
-        // Static fonts (immutable long-term caching)
-        source: "/fonts/:path*",
         headers: [
           {
             key: "Cache-Control",
@@ -69,53 +60,30 @@ const nextConfig: NextConfig = {
           },
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
+        source: "/fonts/:path*",
       },
       {
-        // Static images
-        source: "/images/:path*",
         headers: [
           {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
           },
         ],
+        source: "/images/:path*",
       },
     ];
   },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      { hostname: "ui.aceternity.com" },
-      { hostname: "ui.paceui.com" },
-      { hostname: "ph-files.imgix.net" },
-      { hostname: "headlessui.com" },
-      { hostname: "cdn.prod.website-files.com" },
-      { hostname: "images.unsplash.com" },
-      { hostname: "plus.unsplash.com" },
-      { hostname: "cdn.soralabs.studio", pathname: "/**", protocol: "https" },
       { hostname: "avatars.githubusercontent.com" },
+      { hostname: "cdn.soralabs.studio", pathname: "/**", protocol: "https" },
     ],
   },
+  partialPrefetching: true,
   reactCompiler: true,
   reactStrictMode: false,
-  async redirects() {
-    return [
-      {
-        destination: "https://ui.soralabs.studio/",
-        has: [{ type: "host", value: "ui.soralabs.io.vn" }],
-        permanent: true,
-        source: "/",
-      },
-      {
-        destination: "https://ui.soralabs.studio/:path*",
-        has: [{ type: "host", value: "ui.soralabs.io.vn" }],
-        permanent: true,
-        source: "/:path*",
-      },
-      ...buildDocRedirects(appRoot),
-    ];
-  },
-  async rewrites() {
+  rewrites() {
     return [
       // LLMs MDX / MD rewrites
       {
@@ -136,11 +104,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  transpilePackages: [
-    "@t3-oss/env-core",
-    "@t3-oss/env-nextjs",
-    "@workspace/ui",
-  ],
+  transpilePackages: ["@workspace/ui"],
 };
 
 export default withBundleAnalyzer(withMDX(nextConfig));

@@ -4,6 +4,4 @@ export interface DocRedirect {
   source: string;
 }
 
-export function buildDocRedirects(_appRoot: string): DocRedirect[] {
-  return [];
-}
+export const buildDocRedirects = (_appRoot: string): DocRedirect[] => [];

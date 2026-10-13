@@ -3,7 +3,6 @@
   "pages": [
     "index",
     "measurement-provenance",
-    "observations",
     "hypotheses",
     "layout",
     "paint",
