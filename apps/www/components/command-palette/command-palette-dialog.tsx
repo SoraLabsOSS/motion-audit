@@ -46,7 +46,7 @@ import {
   matchesCommandQuery,
   useCommandPaletteSearch,
 } from "@/lib/command-palette/use-command-palette-search";
-import { setThemeWithTransition } from "@/lib/theme/set-theme-with-transition";
+import { setThemeWithTransition } from "@/lib/theme-transition";
 import { getUiSearchHint } from "@/lib/ui/ui-family";
 
 import {
@@ -267,15 +267,15 @@ export function CommandPaletteDialog({
     (action: CommandPaletteActionId) => {
       switch (action) {
         case "theme-dark": {
-          setThemeWithTransition(setTheme, "dark");
+          setThemeWithTransition("dark", setTheme);
           break;
         }
         case "theme-light": {
-          setThemeWithTransition(setTheme, "light");
+          setThemeWithTransition("light", setTheme);
           break;
         }
         case "theme-system": {
-          setThemeWithTransition(setTheme, "system");
+          setThemeWithTransition("system", setTheme);
           break;
         }
         default: {

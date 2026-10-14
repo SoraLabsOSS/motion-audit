@@ -1,6 +1,7 @@
 import { Button } from "@workspace/ui/components/ui/button";
+import { cn } from "@workspace/ui/lib/utils";
 import { findNeighbour } from "fumadocs-core/server";
-import { createRelativeLink } from "fumadocs-ui/mdx";
+import defaultMdxComponents, { createRelativeLink } from "fumadocs-ui/mdx";
 import {
   DocsBody,
   DocsDescription,
@@ -12,6 +13,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import type { ComponentProps } from "react";
 
 import { baseOptions } from "@/app/layout.config";
 import { DocsAuthor } from "@/components/docs/docs-author";
@@ -58,6 +60,16 @@ const resolveNavItem = (url: string, fallbackName: string): DocsPagerItem => {
   };
 };
 
+const DocLink = ({
+  className,
+  ...props
+}: ComponentProps<typeof defaultMdxComponents.a>) => (
+  <defaultMdxComponents.a
+    {...props}
+    className={cn("[overflow-wrap:anywhere] break-words", className)}
+  />
+);
+
 const DocsPageBody = ({ slug }: { slug?: string[] }) => {
   const page = source.getPage(slug);
   if (!page) {
@@ -97,7 +109,7 @@ const DocsPageBody = ({ slug }: { slug?: string[] }) => {
   return (
     <DocsPage
       article={{
-        className: "[&>[role=none].flex-1]:hidden",
+        className: "min-w-0 max-w-full [&>[role=none].flex-1]:hidden",
       }}
       footer={{
         component: (
@@ -164,10 +176,13 @@ const DocsPageBody = ({ slug }: { slug?: string[] }) => {
         url={page.url}
       />
 
-      <DocsBody className="pt-4 pb-6" id="docs-body">
+      <DocsBody
+        className="max-w-full min-w-0 pt-4 pb-6 break-words"
+        id="docs-body"
+      >
         <MDXContent
           components={getMDXComponents({
-            a: createRelativeLink(source, page),
+            a: createRelativeLink(source, page, DocLink),
           })}
         />
       </DocsBody>

@@ -94,7 +94,12 @@ export const Layout = ({ children }: { children: ReactNode }) => {
   const commandGroups = getCommandPaletteGroups();
 
   const app = (
-    <RootProvider search={{ SearchDialog: CommandPaletteSearchDialog }}>
+    <RootProvider
+      search={{ SearchDialog: CommandPaletteSearchDialog }}
+      theme={{
+        disableTransitionOnChange: false,
+      }}
+    >
       {children}
     </RootProvider>
   );
