@@ -36,11 +36,15 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import type { ComponentProps, ReactNode, SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { plainSourceTitle } from "@/lib/plain-text";
+
+import { isAskAiPath } from "./is-ask-ai-path";
+import { aiChatOpenStore } from "./open-store";
 
 const Markdown = dynamic(
   () => import("../markdown").then((mod) => mod.Markdown),
@@ -61,8 +65,6 @@ const Context = createContext<{
   setOpen: (open: boolean) => void;
   chat: UseChatHelpers<ChatUIMessage>;
 } | null>(null);
-
-import { isAskAiPath } from "./is-ask-ai-path";
 
 const LOADING_MESSAGES = [
   "Searching...",
@@ -233,7 +235,7 @@ function SearchSources({ sources }: { sources: SourceUrlUIPart[] }) {
       initial={reduceMotion ? false : { opacity: 0 }}
       transition={{ duration: reduceMotion ? 0 : 0.35, ease: "easeOut" }}
     >
-      <p className="mb-1.5 font-medium text-fd-muted-foreground text-xs">
+      <p className="text-fd-muted-foreground mb-1.5 text-xs font-medium">
         {sources.length === 1 ? "1 source" : `${sources.length} sources`}
       </p>
       <ul className="flex flex-wrap gap-1.5">
@@ -241,9 +243,9 @@ function SearchSources({ sources }: { sources: SourceUrlUIPart[] }) {
           const title = sourceTitle(source);
 
           return (
-            <li className="min-w-0 max-w-full" key={source.sourceId}>
+            <li className="max-w-full min-w-0" key={source.sourceId}>
               <Link
-                className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden rounded-full border bg-fd-secondary px-2 py-0.5 text-fd-secondary-foreground text-xs transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground"
+                className="bg-fd-secondary text-fd-secondary-foreground hover:bg-fd-accent hover:text-fd-accent-foreground flex max-w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-full border px-2 py-0.5 text-xs transition-colors"
                 href={source.url}
                 title={title}
               >
@@ -265,7 +267,7 @@ function StreamingStatus() {
   return (
     <div
       aria-live="polite"
-      className="mt-2 flex items-center gap-2 text-fd-muted-foreground text-xs"
+      className="text-fd-muted-foreground mt-2 flex items-center gap-2 text-xs"
       role="status"
     >
       <SearchIcon className="size-3.5 shrink-0" />
@@ -313,17 +315,17 @@ export function AISearchPanelHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 flex items-start gap-2 rounded-xl border bg-fd-secondary text-fd-secondary-foreground shadow-sm",
+        "bg-fd-secondary text-fd-secondary-foreground sticky top-0 flex items-start gap-2 rounded-xl border shadow-sm",
         className
       )}
       {...props}
     >
       <div className="flex-1 px-3 py-2">
-        <p className="mb-2 flex items-center gap-2 font-medium text-sm">
+        <p className="mb-2 flex items-center gap-2 text-sm font-medium">
           AI Chat
           {busy ? (
-            <span className="inline-flex items-center gap-1.5 font-normal text-fd-muted-foreground text-xs">
-              <span className="size-1.5 animate-pulse rounded-full bg-fd-primary motion-reduce:animate-none" />
+            <span className="text-fd-muted-foreground inline-flex items-center gap-1.5 text-xs font-normal">
+              <span className="bg-fd-primary size-1.5 animate-pulse rounded-full motion-reduce:animate-none" />
               {status === "submitted" || !hasText ? "Searching" : "Answering"}
             </span>
           ) : null}
@@ -400,16 +402,16 @@ export function AISearchInput(props: ComponentProps<"form">) {
     >
       <InputGroup
         className={cn(
-          "min-h-11 rounded-2xl border-fd-border/80 bg-fd-background/80 shadow-xs backdrop-blur-xl supports-backdrop-filter:bg-fd-background/55",
+          "border-fd-border/80 bg-fd-background/80 supports-backdrop-filter:bg-fd-background/55 min-h-11 rounded-2xl shadow-xs backdrop-blur-xl",
           "has-[>textarea]:h-auto",
           "has-disabled:!bg-fd-background/80 supports-backdrop-filter:has-disabled:!bg-fd-background/55 has-disabled:opacity-100",
-          "has-[[data-slot=input-group-control]:focus-visible]:!ring-1 has-[[data-slot=input-group-control]:focus-visible]:border-fd-ring has-[[data-slot=input-group-control]:focus-visible]:ring-fd-ring/50",
+          "has-[[data-slot=input-group-control]:focus-visible]:border-fd-ring has-[[data-slot=input-group-control]:focus-visible]:ring-fd-ring/50 has-[[data-slot=input-group-control]:focus-visible]:!ring-1",
           "dark:!bg-fd-background/80 dark:has-disabled:!bg-fd-background/80 supports-backdrop-filter:dark:!bg-fd-background/55"
         )}
       >
         <InputGroupTextarea
           autoFocus
-          className="max-h-32 min-h-11 min-w-0 px-3 py-3 text-sm placeholder:text-fd-muted-foreground focus-visible:ring-0 disabled:opacity-60"
+          className="placeholder:text-fd-muted-foreground max-h-32 min-h-11 min-w-0 px-3 py-3 text-sm focus-visible:ring-0 disabled:opacity-60"
           disabled={isLoading}
           id="nd-ai-input"
           onChange={(e) => {
@@ -427,7 +429,7 @@ export function AISearchInput(props: ComponentProps<"form">) {
         />
         <InputGroupAddon
           align="block-end"
-          className="!opacity-100 justify-between px-3 pb-3"
+          className="justify-between px-3 pb-3 !opacity-100"
         >
           <div className="flex items-center gap-1">
             {hasMessages ? (
@@ -476,7 +478,7 @@ export function AISearchInput(props: ComponentProps<"form">) {
               className={cn(
                 "rounded-lg shadow-none",
                 isEmpty &&
-                  "pointer-events-none border-fd-border text-fd-foreground opacity-70"
+                  "border-fd-border text-fd-foreground pointer-events-none opacity-70"
               )}
               size="icon-sm"
               type="submit"
@@ -507,7 +509,7 @@ function ScrollToBottomButton({
       <button
         aria-label="Scroll to bottom"
         className={cn(
-          "pointer-events-auto inline-flex size-8 items-center justify-center rounded-full border border-fd-border bg-fd-background text-fd-foreground shadow-md",
+          "border-fd-border bg-fd-background text-fd-foreground pointer-events-auto inline-flex size-8 items-center justify-center rounded-full border shadow-md",
           "hover:bg-fd-muted",
           reduceMotion &&
             (active ? "opacity-100" : "pointer-events-none opacity-0"),
@@ -649,8 +651,8 @@ function UserMessage({
       onClick={(e) => e.stopPropagation()}
       {...props}
     >
-      <div className="max-w-[85%] rounded-3xl bg-fd-secondary px-4 py-2.5 text-fd-secondary-foreground text-sm">
-        <p className="whitespace-pre-wrap break-words">{text}</p>
+      <div className="bg-fd-secondary text-fd-secondary-foreground max-w-[85%] rounded-3xl px-4 py-2.5 text-sm">
+        <p className="break-words whitespace-pre-wrap">{text}</p>
       </div>
     </div>
   );
@@ -677,14 +679,14 @@ function AssistantMessage({
       onClick={(e) => e.stopPropagation()}
       {...props}
     >
-      <p className="mb-1 font-medium text-fd-primary text-sm">
+      <p className="text-fd-primary mb-1 text-sm font-medium">
         {roleName[message.role] ?? "unknown"}
       </p>
       {markdown ? (
         <div className="prose text-sm">
           <Markdown text={markdown} />
           {isStreaming ? (
-            <span className="ms-1 inline-flex align-middle text-fd-muted-foreground">
+            <span className="text-fd-muted-foreground ms-1 inline-flex align-middle">
               <StreamingDots />
             </span>
           ) : null}
@@ -703,10 +705,10 @@ function EmptyState() {
   const disabled = isBusyStatus(status);
 
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-fd-muted-foreground/80 text-sm">
+    <div className="text-fd-muted-foreground/80 flex size-full flex-col items-center justify-center gap-3 px-4 text-center text-sm">
       <MessageCircleIcon fill="currentColor" stroke="none" />
       <div className="space-y-1">
-        <p className="font-medium text-fd-foreground">Start a conversation</p>
+        <p className="text-fd-foreground font-medium">Start a conversation</p>
         <p>Ask about a primitive, install steps, or how something animates.</p>
       </div>
       <ul className="flex flex-wrap justify-center gap-1.5">
@@ -736,16 +738,23 @@ function EmptyState() {
 }
 
 export function AISearch({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const open = useSyncExternalStore(
+    aiChatOpenStore.subscribe,
+    aiChatOpenStore.getOpen,
+    aiChatOpenStore.getServerOpen
+  );
   const chat = useChat<ChatUIMessage>({
     id: "search",
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
+  const { setOpen } = aiChatOpenStore;
 
   return (
-    <Context value={useMemo(() => ({ chat, open, setOpen }), [chat, open])}>
+    <Context
+      value={useMemo(() => ({ chat, open, setOpen }), [chat, open, setOpen])}
+    >
       {children}
     </Context>
   );
@@ -851,7 +860,7 @@ export function AISearchPanel() {
       <button
         aria-label="Close AI chat"
         className={cn(
-          "fixed inset-0 cursor-default border-0 bg-fd-overlay/60 backdrop-blur-xs lg:hidden",
+          "bg-fd-overlay/60 fixed inset-0 cursor-default border-0 backdrop-blur-xs lg:hidden",
           AI_CHAT_LAYER_CLASSNAME,
           "transition-opacity duration-200 motion-reduce:transition-none",
           entered ? "opacity-100" : "opacity-0"
@@ -863,7 +872,7 @@ export function AISearchPanel() {
         aria-label="AI Chat"
         aria-modal="true"
         className={cn(
-          "fixed flex w-[min(100vw-1rem,var(--ai-chat-width))] flex-col overflow-hidden bg-fd-card text-fd-card-foreground shadow-xl",
+          "bg-fd-card text-fd-card-foreground fixed flex w-[min(100vw-1rem,var(--ai-chat-width))] flex-col overflow-hidden shadow-xl",
           AI_CHAT_LAYER_CLASSNAME,
           "inset-e-2 top-4 bottom-4 rounded-2xl border",
           "lg:inset-e-0 lg:top-[calc(var(--fd-banner-height)+var(--fd-nav-height))] lg:bottom-0 lg:w-(--ai-chat-width) lg:rounded-none lg:border-s lg:border-e-0 lg:shadow-none",
@@ -911,8 +920,8 @@ export function AISearchPanelList({
       ) : (
         <div className="flex min-w-0 flex-col gap-4 px-3 py-4">
           {chat.error && (
-            <div className="rounded-lg border bg-fd-secondary p-2 text-fd-secondary-foreground">
-              <p className="mb-1 text-fd-muted-foreground text-xs">
+            <div className="bg-fd-secondary text-fd-secondary-foreground rounded-lg border p-2">
+              <p className="text-fd-muted-foreground mb-1 text-xs">
                 Request Failed: {chat.error.name}
               </p>
               <p className="text-sm">{chat.error.message}</p>
@@ -994,7 +1003,10 @@ export function AISearchSiteTrigger() {
         uiButtonVariants({
           className: "rounded-2xl text-fd-muted-foreground",
           variant: "secondary",
-        })
+        }),
+        // The navbar entry point (`AskAiNavTrigger`) only shows once the TOC
+        // column takes over at `xl`; below that the float stays.
+        "xl:hidden"
       )}
       position="float"
     >

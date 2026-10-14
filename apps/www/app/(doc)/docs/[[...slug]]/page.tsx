@@ -21,6 +21,7 @@ import { DocsHeaderToc } from "@/components/docs/docs-header-toc";
 import { DocsPageJsonLd } from "@/components/docs/docs-page-json-ld";
 import { DocsPager } from "@/components/docs/docs-pager";
 import type { DocsPagerItem } from "@/components/docs/docs-pager";
+import { DocsTocPromo } from "@/components/docs/docs-toc-promo";
 import { Footer } from "@/components/docs/footer";
 import { PageActionButtons } from "@/components/docs/page-actions";
 import { source } from "@/lib/docs/source";
@@ -126,7 +127,10 @@ const DocsPageBody = ({ slug }: { slug?: string[] }) => {
         ),
       }}
       full={page.data.full}
-      tableOfContent={{ style: "clerk" }}
+      tableOfContent={{
+        footer: page.data.toc.length > 0 ? <DocsTocPromo /> : undefined,
+        style: "clerk",
+      }}
       tableOfContentPopover={{
         component: <DocsHeaderToc />,
       }}

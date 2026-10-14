@@ -24,6 +24,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
+import { AskAiNavTrigger } from "@/components/ai/ask-ai-nav-trigger";
 import { CommandPaletteTrigger } from "@/components/command-palette/command-palette-trigger";
 import {
   allowMobileSidebarOpen,
@@ -70,8 +71,8 @@ const LIBRARY_NAV_ITEMS = (
 ): LibraryNavItem[] => [];
 
 const NAV_LINK_CLASS = cn(
-  "h-8 justify-center rounded-md bg-transparent px-3 py-0 font-normal text-neutral-700 text-sm transition-colors duration-200 ease-in-out hover:bg-transparent hover:text-black focus:bg-transparent focus:text-black dark:text-neutral-200 dark:focus:text-white dark:hover:text-white",
-  "data-[active=true]:bg-transparent data-[active=true]:text-black data-[active=true]:focus:bg-transparent data-[active=true]:hover:bg-transparent dark:data-[active=true]:text-white"
+  "h-8 justify-center rounded-md bg-transparent px-3 py-0 text-sm font-normal text-neutral-700 transition-colors duration-200 ease-in-out hover:bg-transparent hover:text-black focus:bg-transparent focus:text-black dark:text-neutral-200 dark:hover:text-white dark:focus:text-white",
+  "data-[active=true]:bg-transparent data-[active=true]:text-black data-[active=true]:hover:bg-transparent data-[active=true]:focus:bg-transparent dark:data-[active=true]:text-white"
 );
 
 function LibraryMenuContent({
@@ -81,7 +82,7 @@ function LibraryMenuContent({
 }) {
   return (
     <Highlight
-      className="pointer-events-none rounded-sm bg-accent"
+      className="bg-accent pointer-events-none rounded-sm"
       containerClassName="flex w-120 gap-2"
       controlledItems
       hover
@@ -90,14 +91,14 @@ function LibraryMenuContent({
       <HighlightItem asChild value="motion-audit">
         <NavigationMenuLink
           asChild
-          className="relative z-10 w-45 shrink-0 bg-muted/60 p-3 hover:bg-muted/60 focus:bg-muted data-[active=true]:bg-muted/60 data-[active=true]:hover:bg-muted/60"
+          className="bg-muted/60 hover:bg-muted/60 focus:bg-muted data-[active=true]:bg-muted/60 data-[active=true]:hover:bg-muted/60 relative z-10 w-45 shrink-0 p-3"
         >
           <Link href={DOCS_GUIDE_URL}>
-            <span className="flex size-9 items-center justify-center rounded-md border bg-background">
+            <span className="bg-background flex size-9 items-center justify-center rounded-md border">
               <IconLogo className="text-foreground" size="sm" />
             </span>
-            <span className="mt-8 font-medium text-sm">Motion Audit</span>
-            <span className="mt-1 text-muted-foreground text-xs leading-relaxed">
+            <span className="mt-8 text-sm font-medium">Motion Audit</span>
+            <span className="text-muted-foreground mt-1 text-xs leading-relaxed">
               Web motion performance auditing engine.
             </span>
           </Link>
@@ -112,9 +113,9 @@ function LibraryMenuContent({
                 className="relative z-10 flex cursor-default flex-col gap-1 p-3 opacity-50"
                 key={item.title}
               >
-                <span className="flex items-center justify-between font-medium text-sm">
+                <span className="flex items-center justify-between text-sm font-medium">
                   {item.title}
-                  <span className="rounded-full border px-1.5 py-0.5 font-normal text-[10px] text-muted-foreground leading-none">
+                  <span className="text-muted-foreground rounded-full border px-1.5 py-0.5 text-[10px] leading-none font-normal">
                     Soon
                   </span>
                 </span>
@@ -131,9 +132,9 @@ function LibraryMenuContent({
                 className="relative z-10 gap-1 p-3 hover:bg-transparent data-[active=true]:bg-transparent data-[active=true]:hover:bg-transparent"
               >
                 <Link href={item.url}>
-                  <span className="flex items-center justify-between font-medium text-sm">
+                  <span className="flex items-center justify-between text-sm font-medium">
                     {item.title}
-                    <ArrowUpRight className="size-3.5 text-muted-foreground" />
+                    <ArrowUpRight className="text-muted-foreground size-3.5" />
                   </span>
                   <span className="text-muted-foreground text-xs leading-relaxed">
                     {item.description}
@@ -185,7 +186,7 @@ function NavMenuItems({ libraryItems }: { libraryItems: LibraryNavItem[] }) {
           <NavigationMenuTrigger
             className={cn(
               NAV_LINK_CLASS,
-              "data-[state=open]:bg-transparent data-[state=open]:text-black data-[state=open]:focus:bg-transparent data-[state=open]:hover:bg-transparent dark:data-[state=open]:text-white"
+              "data-[state=open]:bg-transparent data-[state=open]:text-black data-[state=open]:hover:bg-transparent data-[state=open]:focus:bg-transparent dark:data-[state=open]:text-white"
             )}
           >
             Library
@@ -255,7 +256,7 @@ export const Nav = ({ primitivesUrl, uiUrl }: NavProps) => {
           <div className="hidden items-center gap-1 md:flex">
             <NavigationMenu viewport={false}>
               <Highlight
-                className="pointer-events-none rounded-md bg-accent"
+                className="bg-accent pointer-events-none rounded-md"
                 containerClassName="relative"
                 controlledItems
                 hover
@@ -271,9 +272,11 @@ export const Nav = ({ primitivesUrl, uiUrl }: NavProps) => {
           <div className="relative z-10 flex shrink-0 items-center">
             <CommandPaletteTrigger />
 
+            <AskAiNavTrigger className="ms-2 hidden xl:inline-flex" />
+
             <a
               aria-label="GitHub repository"
-              className="ms-2 hidden size-6 shrink-0 items-center justify-center rounded-md text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground md:ms-3 md:inline-flex [&_svg]:size-6"
+              className="text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-accent-foreground ms-2 hidden size-6 shrink-0 items-center justify-center rounded-md transition-colors md:ms-3 md:inline-flex [&_svg]:size-6"
               href={GITHUB_REPO_URL}
               rel="noreferrer noopener"
               target="_blank"
