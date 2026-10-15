@@ -169,11 +169,25 @@ export class BrowserRunner {
       launchArgs.push("--no-sandbox", "--disable-setuid-sandbox");
     }
 
-    this.browser = await launch({
-      args: launchArgs,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      headless: true,
-    });
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    try {
+      this.browser = await launch({
+        args: launchArgs,
+        channel: executablePath ? undefined : "chrome",
+        executablePath,
+        headless: true,
+      });
+    } catch (systemBrowserError) {
+      try {
+        this.browser = await launch({
+          args: launchArgs,
+          executablePath,
+          headless: true,
+        });
+      } catch {
+        throw systemBrowserError;
+      }
+    }
     return this.browser;
   };
 

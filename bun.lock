@@ -103,7 +103,7 @@
     },
     "packages/motion-audit": {
       "name": "@soralabs/motion-audit",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "bin": {
         "motion-audit": "bin/motion-audit.js",
       },

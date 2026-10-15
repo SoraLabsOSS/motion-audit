@@ -218,7 +218,7 @@ export const runCli = async (argv: string[]): Promise<void> => {
     ) {
       console.error(
         pc.yellow(
-          'Tip: Run "bunx @puppeteer/browsers install chrome" to download Chromium locally.\n'
+          'Tip: Install Chrome for Testing with "npx @puppeteer/browsers install chrome" or set PUPPETEER_EXECUTABLE_PATH.\n'
         )
       );
     } else if (
