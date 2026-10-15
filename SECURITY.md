@@ -20,7 +20,7 @@ You can report vulnerabilities through either of the following private channels:
 To help us assess and resolve the issue quickly, please include:
 
 - A clear summary of the vulnerability.
-- Affected package, CLI tool, API endpoint, or web service (e.g., `@soralasbs/motion-audit`, `apps/www`, scoring API, or SVG badge service).
+- Affected package, CLI tool, API endpoint, or web service (e.g., `@soralabs/motion-audit`, `apps/www`, scoring API, or SVG badge service).
 - Step-by-step instructions or a minimal Proof of Concept (PoC) to reproduce the issue.
 - Potential impact and exploitation scenario.
 - Any suggested fixes or mitigations (optional).

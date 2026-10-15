@@ -2,7 +2,7 @@ import {
   classifyPropertyCost,
   classifyPropertyStage,
   PIPELINE_COSTS,
-} from "@soralasbs/motion-audit";
+} from "@soralabs/motion-audit";
 import type { InferSchema, ToolMetadata } from "xmcp";
 import { z } from "zod";
 

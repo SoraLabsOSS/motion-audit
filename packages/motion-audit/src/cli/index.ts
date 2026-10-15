@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 
 import { log } from "@clack/prompts";
 import pc from "picocolors";
@@ -11,6 +12,8 @@ import { generateSvgBadge } from "./badge.js";
 import { renderTerminalReport, spinner } from "./ui.js";
 
 const TIER_ORDER: Tier[] = ["S", "A", "B", "C", "D", "F"];
+const require = createRequire(import.meta.url);
+const packageJson = require("../../package.json") as { version: string };
 
 const meetsThreshold = (actual: Tier, threshold: Tier): boolean =>
   TIER_ORDER.indexOf(actual) <= TIER_ORDER.indexOf(threshold);
@@ -131,7 +134,7 @@ export const runCli = async (argv: string[]): Promise<void> => {
   }
 
   if (opts.version) {
-    console.log("0.1.0");
+    console.log(packageJson.version);
     process.exit(0);
   }
 

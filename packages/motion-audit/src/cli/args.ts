@@ -73,9 +73,9 @@ motion-audit <url> [options]
 Independent Web Animation & Motion Performance Auditor
 
 Usage:
-  npx @soralasbs/motion-audit https://example.com
-  npx @soralasbs/motion-audit http://localhost:3000 --ai
-  npx @soralasbs/motion-audit https://example.com --threshold A
+  npx @soralabs/motion-audit https://example.com
+  npx @soralabs/motion-audit http://localhost:3000 --ai
+  npx @soralabs/motion-audit https://example.com --threshold A
 
 Options:
   --json              Output machine-readable JSON to stdout (free, unrestricted)

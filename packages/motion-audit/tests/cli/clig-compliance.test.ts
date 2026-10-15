@@ -42,13 +42,13 @@ describe("clig.dev Standards Compliance Verification", () => {
       encoding: "utf-8",
     });
     expect(resV.status).toBe(0);
-    expect(resV.stdout.trim()).toBe("0.1.0");
+    expect(resV.stdout.trim()).toBe("0.1.2");
 
     const resVer = spawnSync(RUNTIME_BIN, [BIN_PATH, "--version"], {
       encoding: "utf-8",
     });
     expect(resVer.status).toBe(0);
-    expect(resVer.stdout.trim()).toBe("0.1.0");
+    expect(resVer.stdout.trim()).toBe("0.1.2");
   });
 
   it("maintains strict stream isolation with --json (stdout is 100% valid JSON, stderr has 0 bytes)", () => {

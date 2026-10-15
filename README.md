@@ -7,8 +7,8 @@ Standards-informed web animation and motion performance auditing from SoraLabs. 
 Run an audit without installing the CLI globally:
 
 ```bash
-npx @soralasbs/motion-audit https://example.com
-npx @soralasbs/motion-audit http://localhost:3000 --ai
+npx @soralabs/motion-audit https://example.com
+npx @soralabs/motion-audit http://localhost:3000 --ai
 ```
 
 The CLI uses Puppeteer and Chromium to inspect animation timelines, scroll handlers, layout thrashing, compositor layers, and modeled texture memory on desktop and mobile reference viewports.
@@ -17,17 +17,17 @@ Common commands:
 
 ```bash
 # Machine-readable output
-npx @soralasbs/motion-audit https://example.com --json
+npx @soralabs/motion-audit https://example.com --json
 
 # Generate an AI remediation brief
-npx @soralasbs/motion-audit https://example.com --ai
+npx @soralabs/motion-audit https://example.com --ai
 
 # Fail CI when the result is worse than Tier A
-npx @soralasbs/motion-audit https://example.com --threshold A
+npx @soralabs/motion-audit https://example.com --threshold A
 
 # Generate a GitHub README badge and compact report
-npx @soralasbs/motion-audit https://example.com --badge
-npx @soralasbs/motion-audit https://example.com --summary motion-audit.json
+npx @soralabs/motion-audit https://example.com --badge
+npx @soralabs/motion-audit https://example.com --summary motion-audit.json
 ```
 
 See [`packages/motion-audit/README.md`](./packages/motion-audit/README.md) for the complete CLI reference, programmatic API, Chromium setup, exit codes, and development commands.

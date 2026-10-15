@@ -3,18 +3,18 @@ title: Programmatic API
 description: Using Motion Audit as a Node.js library or SDK for automated testing and CI/CD pipelines.
 ---
 
-While Motion Audit is primarily distributed as a CLI tool, the `@soralasbs/motion-audit` package also exports a programmatic Node.js API. You can import the audit runner directly into custom scripts, internal dashboards, or automated testing pipelines.
+While Motion Audit is primarily distributed as a CLI tool, the `@soralabs/motion-audit` package also exports a programmatic Node.js API. You can import the audit runner directly into custom scripts, internal dashboards, or automated testing pipelines.
 
 ---
 
 ## Installation
 
-Install `@soralasbs/motion-audit` as a development dependency:
+Install `@soralabs/motion-audit` as a development dependency:
 
 ```bash
-npm install --save-dev @soralasbs/motion-audit
+npm install --save-dev @soralabs/motion-audit
 # or
-bun add -d @soralasbs/motion-audit
+bun add -d @soralabs/motion-audit
 ```
 
 Puppeteer will resolve or download a compatible Chromium binary. For headless container environments without standard sandbox support, ensure `MOTION_AUDIT_NO_SANDBOX=1` is set in your environment.
@@ -26,7 +26,7 @@ Puppeteer will resolve or download a compatible Chromium binary. For headless co
 The entry point is the `audit()` function:
 
 ```typescript
-import { audit } from "@soralasbs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 
 const report = await audit("https://example.com", {
   onProgress: (message) => {
@@ -114,7 +114,7 @@ You can use the programmatic API in custom test suites (e.g., Vitest or Node tes
 ```typescript
 import test from "node:test";
 import assert from "node:assert/strict";
-import { audit } from "@soralasbs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 
 test("production landing page maintains at least Tier A motion", async () => {
   const report = await audit("http://localhost:3000");
@@ -132,7 +132,7 @@ test("production landing page maintains at least Tier A motion", async () => {
 When high or critical findings occur, extract pre-formatted AI prompts to pass to Claude, Cursor, or your internal automation:
 
 ```typescript
-import { audit } from "@soralasbs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 
 const report = await audit("http://localhost:3000");
 

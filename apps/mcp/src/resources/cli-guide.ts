@@ -20,26 +20,26 @@ Run directly without global installation:
 
 \`\`\`bash
 # Run standard audit on local dev or production URL
-npx @soralasbs/motion-audit http://localhost:3000
+npx @soralabs/motion-audit http://localhost:3000
 
 # Generate an AI remediation directive for Cursor, Claude, or Copilot
-npx @soralasbs/motion-audit http://localhost:3000 --ai
+npx @soralabs/motion-audit http://localhost:3000 --ai
 
 # Emit machine-readable JSON to stdout
-npx @soralasbs/motion-audit https://example.com --json
+npx @soralabs/motion-audit https://example.com --json
 
 # Fail CI pipeline if score falls below Tier A (exit code 1)
-npx @soralasbs/motion-audit https://example.com --threshold A
+npx @soralabs/motion-audit https://example.com --threshold A
 
 # Audit specific viewports
-npx @soralasbs/motion-audit https://example.com --desktop-only
-npx @soralasbs/motion-audit https://example.com --mobile-only
+npx @soralabs/motion-audit https://example.com --desktop-only
+npx @soralabs/motion-audit https://example.com --mobile-only
 
 # Generate SVG badge for README.md
-npx @soralasbs/motion-audit https://example.com --badge motion-audit.svg
+npx @soralabs/motion-audit https://example.com --badge motion-audit.svg
 
 # Output compact JSON summary to a file
-npx @soralasbs/motion-audit https://example.com --summary motion-audit.json
+npx @soralabs/motion-audit https://example.com --summary motion-audit.json
 \`\`\`
 
 ---
@@ -87,12 +87,12 @@ export MOTION_AUDIT_NO_SANDBOX=1
 
 Install locally:
 \`\`\`bash
-npm install --save-dev @soralasbs/motion-audit
+npm install --save-dev @soralabs/motion-audit
 \`\`\`
 
 Import and call in your test scripts:
 \`\`\`typescript
-import { audit } from "@soralasbs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 
 const report = await audit("http://localhost:3000", {
   onProgress: (msg) => console.log(msg),

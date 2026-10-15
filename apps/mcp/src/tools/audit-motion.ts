@@ -1,5 +1,5 @@
-import type { AuditFinding, MotionAuditReport } from "@soralasbs/motion-audit";
-import { audit } from "@soralasbs/motion-audit";
+import type { AuditFinding, MotionAuditReport } from "@soralabs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 import type { InferSchema, ToolMetadata } from "xmcp";
 import { z } from "zod";
 

@@ -1,4 +1,4 @@
-# @soralasbs/motion-audit
+# @soralabs/motion-audit
 
 Independent web animation and motion performance auditor for production URLs and local development servers.
 
@@ -9,14 +9,14 @@ Motion Audit uses Puppeteer and Chromium to inspect animation timelines, scroll 
 Run it without installing globally:
 
 ```bash
-npx @soralasbs/motion-audit https://example.com
-npx @soralasbs/motion-audit http://localhost:3000 --ai
+npx @soralabs/motion-audit https://example.com
+npx @soralabs/motion-audit http://localhost:3000 --ai
 ```
 
 Or install it in a project:
 
 ```bash
-npm install --save-dev @soralasbs/motion-audit
+npm install --save-dev @soralabs/motion-audit
 ```
 
 The package exposes the `motion-audit` binary:
@@ -25,7 +25,7 @@ The package exposes the `motion-audit` binary:
 npx motion-audit https://example.com
 ```
 
-The unscoped command works when the package is installed locally because npm resolves the package's `bin` entry. For a one-off invocation from the npm registry, use the full scoped package name: `npx @soralasbs/motion-audit <url>`.
+The unscoped command works when the package is installed locally because npm resolves the package's `bin` entry. For a one-off invocation from the npm registry, use the full scoped package name: `npx @soralabs/motion-audit <url>`.
 
 ## CLI usage
 
@@ -35,21 +35,21 @@ motion-audit <url> [options]
 
 ```bash
 # Generate an AI remediation brief
-npx @soralasbs/motion-audit https://example.com --ai
+npx @soralabs/motion-audit https://example.com --ai
 
 # Emit machine-readable JSON
-npx @soralasbs/motion-audit https://example.com --json
+npx @soralabs/motion-audit https://example.com --json
 
 # Fail CI when the overall tier is worse than A
-npx @soralasbs/motion-audit https://example.com --threshold A
+npx @soralabs/motion-audit https://example.com --threshold A
 
 # Audit one viewport
-npx @soralasbs/motion-audit https://example.com --desktop-only
-npx @soralasbs/motion-audit https://example.com --mobile-only
+npx @soralabs/motion-audit https://example.com --desktop-only
+npx @soralabs/motion-audit https://example.com --mobile-only
 
 # Write a badge or compact summary
-npx @soralasbs/motion-audit https://example.com --badge
-npx @soralasbs/motion-audit https://example.com --summary motion-audit.json
+npx @soralabs/motion-audit https://example.com --badge
+npx @soralabs/motion-audit https://example.com --summary motion-audit.json
 ```
 
 Options:
@@ -92,7 +92,7 @@ MOTION_AUDIT_NO_SANDBOX=1
 The package also exports the audit runner, browser viewport constants, report types, scoring helpers, and remediation prompt generators:
 
 ```ts
-import { audit } from "@soralasbs/motion-audit";
+import { audit } from "@soralabs/motion-audit";
 
 const report = await audit("https://example.com", {
   onProgress: (message) => console.error(message),

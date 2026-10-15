@@ -1,4 +1,4 @@
-import { generateSvgBadge } from "@soralasbs/motion-audit";
+import { generateSvgBadge } from "@soralabs/motion-audit";
 import type { InferSchema, ToolMetadata } from "xmcp";
 import { z } from "zod";
 

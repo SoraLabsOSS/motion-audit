@@ -36,7 +36,7 @@ Target Quality Threshold: Tier ${targetTier}
 ### Step 1: Run the Motion Audit
 Use the MCP tool \`audit_motion\` with \`url: "${url}"\`, or alternatively run via terminal CLI:
 \`\`\`bash
-npx @soralasbs/motion-audit ${url} --ai
+npx @soralabs/motion-audit ${url} --ai
 \`\`\`
 
 ---

@@ -25,7 +25,7 @@
         "mcp": "./dist/stdio.js",
       },
       "dependencies": {
-        "@soralasbs/motion-audit": "workspace:*",
+        "@soralabs/motion-audit": "workspace:*",
         "xmcp": "latest",
         "zod": "^4.0.0",
       },
@@ -102,8 +102,8 @@
       },
     },
     "packages/motion-audit": {
-      "name": "@soralasbs/motion-audit",
-      "version": "0.1.1",
+      "name": "@soralabs/motion-audit",
+      "version": "0.1.2",
       "bin": {
         "motion-audit": "bin/motion-audit.js",
       },
@@ -776,7 +776,7 @@
 
     "@sonarsource/analyzer-commons-configurations": ["@sonarsource/analyzer-commons-configurations@2.31.0-5284", "", {}, "sha512-ruk3blMs9BE9RNSp9LPpWZAIjxJmq4Cp00E3cELIHz7Kym3WxdWGRlKOMYLRQ5tJg/de7jN5AtEElY3bGIfTcw=="],
 
-    "@soralasbs/motion-audit": ["@soralasbs/motion-audit@workspace:packages/motion-audit"],
+    "@soralabs/motion-audit": ["@soralabs/motion-audit@workspace:packages/motion-audit"],
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
