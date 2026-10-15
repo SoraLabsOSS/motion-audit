@@ -1,0 +1,30 @@
+{
+  "name": "mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for Motion Audit — enabling AI assistants to audit animations, evaluate CSS rendering pipeline costs, query documentation, and generate automated code remediations.",
+  "bin": {
+    "mcp": "./dist/stdio.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/stdio.js",
+  "scripts": {
+    "build": "xmcp build",
+    "check-types": "tsc --noEmit",
+    "dev": "xmcp dev",
+    "start-http": "node dist/http.js",
+    "start-stdio": "node dist/stdio.js"
+  },
+  "dependencies": {
+    "@soralasbs/motion-audit": "workspace:*",
+    "xmcp": "latest",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@xmcp-dev/compiler": "latest"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

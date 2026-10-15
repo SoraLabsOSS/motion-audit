@@ -1,0 +1,152 @@
+---
+title: MCP Server
+description: Connect Motion Audit to AI assistants such as Cursor, Claude Desktop, Copilot, and Windsurf via the Model Context Protocol.
+---
+
+The Motion Audit MCP (Model Context Protocol) server enables AI coding assistants to evaluate web motion performance, diagnose compositor bottlenecks, inspect CSS pipeline costs, query documentation, and generate automated code remediations directly in your editor.
+
+---
+
+## Client Setup
+
+The server supports both standard STDIO (recommended for desktop clients like Cursor and Claude Desktop) and HTTP transport.
+
+### Cursor
+
+Add the server to your project's `.cursor/mcp.json` or your global Cursor MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "motion-audit": {
+      "command": "bun",
+      "args": ["run", "--cwd", "apps/mcp", "src/index.ts"]
+    }
+  }
+}
+```
+
+If you prefer using the precompiled bundle:
+
+```json
+{
+  "mcpServers": {
+    "motion-audit": {
+      "command": "node",
+      "args": ["apps/mcp/dist/stdio.js"]
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "motion-audit": {
+      "command": "bun",
+      "args": ["run", "--cwd", "apps/mcp", "src/index.ts"]
+    }
+  }
+}
+```
+
+---
+
+## Available Tools
+
+The MCP server exposes 7 specialized tools designed for AI model context windows:
+
+### 1. `audit_motion`
+
+Runs a headless Chromium audit against a target URL and returns an overall score (0–100), quality tier (S through F), viewport breakdowns, and diagnostic findings.
+
+- **Parameters:**
+  - `url` (string, required): Webpage URL to evaluate (e.g. `http://localhost:3000`).
+  - `desktopOnly` (boolean, optional): Audit only the 1440x900 @ DPR 2 viewport.
+  - `mobileOnly` (boolean, optional): Audit only the 390x844 @ DPR 3 viewport.
+
+### 2. `get_remediation_prompt`
+
+Audits a URL and formats a comprehensive, actionable technical refactoring directive specifically designed for AI coding assistants.
+
+- **Parameters:**
+  - `url` (string, required): Webpage URL to audit.
+  - `category` (string, optional): Filter by issue category (`layout-animation`, `thrashing`, `scroll`, `gpu`, `blur`, `will-change`, `offscreen-animation`, `all`).
+
+### 3. `inspect_css_property`
+
+Checks CSS properties against the browser rendering pipeline model (Compositor vs Paint vs Layout). Tells the AI whether a given transition will cause layout reflow or paint invalidation, and suggests compositor-accelerated alternatives (such as `transform: translate3d(...)` or `opacity`).
+
+- **Parameters:**
+  - `properties` (string[], required): List of CSS properties to inspect (e.g. `["top", "left", "width", "transform", "box-shadow"]`).
+
+### 4. `generate_badge`
+
+Generates SVG badge markup and Markdown shields reflecting the Motion Audit grade.
+
+- **Parameters:**
+  - `tier` (string, required): Quality tier (`S`, `A`, `B`, `C`, `D`, `F`).
+  - `score` (number, required): Performance score (0–100).
+  - `label` (string, optional): Badge label (default: `motion audit`).
+
+### 5. `search_docs`
+
+Searches Motion Audit documentation by keyword or phrase. Operates local-first in the monorepo with remote fallback to `https://motion.soralabs.studio`.
+
+- **Parameters:**
+  - `query` (string, required): Search query.
+  - `section` (string, optional): Filter by documentation section.
+  - `limit` (number, optional): Maximum results (default: 10).
+
+### 6. `get_page`
+
+Retrieves full markdown content of any documentation page by slug (e.g. `programmatic-api`, `methodology/cost-model`).
+
+- **Parameters:**
+  - `slug` (string, required): Documentation slug or path.
+
+### 7. `list_sections`
+
+Lists the complete documentation hierarchy and section structure.
+
+- **Parameters:**
+  - `section` (string, optional): Filter by section name.
+
+---
+
+## Workflow Prompts
+
+### `audit_and_fix`
+
+A guided 4-step workflow prompt that instructs an AI assistant to:
+
+1. Run `audit_motion` against your development server.
+2. Diagnose root causes across the 4 measurement pillars (Pipeline Cost, Scroll Dynamics, Layout Thrashing, GPU Memory).
+3. Apply surgical code fixes (e.g., converting geometry animations to transforms, adding passive event listeners, batching DOM queries).
+4. Re-run the audit to verify that the target quality tier (`Tier A` or `Tier S`) is achieved.
+
+---
+
+## Resources
+
+The server exposes 2 MCP resources:
+
+- `motion-audit-docs`: Complete index and table of contents for Motion Audit documentation.
+- `motion-audit-cli-guide`: Full technical guide covering CLI flags (`--ai`, `--json`, `--threshold`, `--badge`), exit codes, and headless container configuration.
+
+---
+
+## Typical AI Interaction Pattern
+
+Once configured, you can prompt your AI assistant directly:
+
+> "Audit http://localhost:3000 using motion audit, check the CSS animation properties on our hero banner, and refactor any layout-triggering properties to compositor transforms."
+
+The AI will invoke `audit_motion` and `inspect_css_property`, locate the offending source files, apply the minimal patch, and verify the performance improvement.

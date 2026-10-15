@@ -1,0 +1,159 @@
+---
+title: Programmatic API
+description: Using Motion Audit as a Node.js library or SDK for automated testing and CI/CD pipelines.
+---
+
+While Motion Audit is primarily distributed as a CLI tool, the `@soralasbs/motion-audit` package also exports a programmatic Node.js API. You can import the audit runner directly into custom scripts, internal dashboards, or automated testing pipelines.
+
+---
+
+## Installation
+
+Install `@soralasbs/motion-audit` as a development dependency:
+
+```bash
+npm install --save-dev @soralasbs/motion-audit
+# or
+bun add -d @soralasbs/motion-audit
+```
+
+Puppeteer will resolve or download a compatible Chromium binary. For headless container environments without standard sandbox support, ensure `MOTION_AUDIT_NO_SANDBOX=1` is set in your environment.
+
+---
+
+## Quickstart
+
+The entry point is the `audit()` function:
+
+```typescript
+import { audit } from "@soralasbs/motion-audit";
+
+const report = await audit("https://example.com", {
+  onProgress: (message) => {
+    console.log(`[audit progress] ${message}`);
+  },
+});
+
+console.log(`Overall Tier: ${report.overallTier}`);
+console.log(`Overall Score: ${report.overallScore}/100`);
+```
+
+---
+
+## Options (`AuditRunOptions`)
+
+The `audit(url, options)` function accepts an optional configuration object:
+
+```typescript
+export interface AuditRunOptions {
+  /** Run audit exclusively on the 1440x900 @ DPR 2 reference desktop viewport */
+  desktopOnly?: boolean;
+
+  /** Run audit exclusively on the 390x844 @ DPR 3 reference mobile viewport */
+  mobileOnly?: boolean;
+
+  /** Callback invoked whenever audit progress changes */
+  onProgress?: (message: string) => void;
+}
+```
+
+By default, both desktop and mobile viewports are audited sequentially and synthesized into the final tier.
+
+---
+
+## Understanding the Report (`MotionAuditReport`)
+
+The `audit()` function returns a structured `MotionAuditReport` object:
+
+```typescript
+interface MotionAuditReport {
+  url: string;
+  timestamp: string;
+  overallScore: number; // 0 - 100
+  overallTier: "S" | "A" | "B" | "C" | "D" | "F";
+  desktop: ViewportAuditResult;
+  mobile: ViewportAuditResult;
+  findings: AuditFinding[];
+}
+```
+
+### Key Report Properties
+
+- **`overallTier` & `overallScore`**: Synthesized diagnostic grade combining compositor efficiency, scroll friction, layout thrashing, and GPU memory pressure.
+- **`findings`**: Array of actionable diagnostic issues detected during the audit:
+  ```typescript
+  interface AuditFinding {
+    id: string;
+    category:
+      | "gpu"
+      | "blur"
+      | "will-change"
+      | "layout-animation"
+      | "scroll"
+      | "thrashing"
+      | "offscreen-animation";
+    severity: "critical" | "high" | "medium" | "low";
+    title: string;
+    description: string;
+    recommendation: string;
+    selectors?: string[];
+    viewport: "desktop" | "mobile" | "both";
+    fixPrompt?: string; // Pre-formatted prompt for AI coding assistants
+  }
+  ```
+- **`desktop` / `mobile`**: Deep viewport telemetry including captured animations, scroll listeners, CDP layers, and modeled VRAM consumption in bytes.
+
+---
+
+## Practical Examples
+
+### Custom CI Quality Gate
+
+You can use the programmatic API in custom test suites (e.g., Vitest or Node test runner) to assert motion quality:
+
+```typescript
+import test from "node:test";
+import assert from "node:assert/strict";
+import { audit } from "@soralasbs/motion-audit";
+
+test("production landing page maintains at least Tier A motion", async () => {
+  const report = await audit("http://localhost:3000");
+
+  const allowedTiers = ["S", "A"];
+  assert.ok(
+    allowedTiers.includes(report.overallTier),
+    `Motion audit failed with Tier ${report.overallTier} (score: ${report.overallScore})`
+  );
+});
+```
+
+### Exporting AI Remediation Prompts
+
+When high or critical findings occur, extract pre-formatted AI prompts to pass to Claude, Cursor, or your internal automation:
+
+```typescript
+import { audit } from "@soralasbs/motion-audit";
+
+const report = await audit("http://localhost:3000");
+
+const criticalFindings = report.findings.filter(
+  (f) => f.severity === "critical" || f.severity === "high"
+);
+
+for (const finding of criticalFindings) {
+  if (finding.fixPrompt) {
+    console.log(`\n--- Remediation Prompt for: ${finding.title} ---`);
+    console.log(finding.fixPrompt);
+  }
+}
+```
+
+---
+
+## Low-Level Utilities
+
+For advanced use cases, the package also exports lower-level math models and constants:
+
+- **`BrowserRunner`**: Direct control over Puppeteer session lifecycle and viewport audits.
+- **`DESKTOP_VIEWPORT` & `MOBILE_VIEWPORT`**: Standard viewport dimensions and DPR configurations.
+- **Math Models**: Functions for calculating VRAM allocation (`calculateRawTextureMemory`), concurrency metrics, and layout thrashing detection.
