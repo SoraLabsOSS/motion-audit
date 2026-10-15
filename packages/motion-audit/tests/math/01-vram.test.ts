@@ -94,6 +94,18 @@ test("VRAM Math: unavailable layer telemetry is neutral, not falsely pristine", 
   assert.equal(result.tier, "B");
 });
 
+test("VRAM Math: measured zero layer pressure is pristine", () => {
+  const result = evaluateGpuResourcePressure({
+    compositedVramBytes: 0,
+    deviceContext: "desktop",
+    layerCount: 0,
+    measurementAvailable: true,
+    tiledBackingBytes: 0,
+  });
+  assert.equal(result.score, 100);
+  assert.equal(result.tier, "S");
+});
+
 test("VRAM Math: missing tiled telemetry is neutral, not zero pressure", () => {
   const result = evaluateGpuResourcePressure({
     compositedVramBytes: 50 * 1024 * 1024,

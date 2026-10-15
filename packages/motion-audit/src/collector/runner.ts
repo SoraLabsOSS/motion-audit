@@ -185,6 +185,22 @@ export class BrowserRunner {
     const browser = this.browser ?? (await this.launch(onProgress));
     const page = await browser.newPage();
     const cdp = await page.createCDPSession();
+    let latestLayers: RawCdpLayer[] = [];
+    let layerTreeMeasurementAvailable = false;
+
+    const onLayers = (params: { layers?: RawCdpLayer[] }) => {
+      if (Array.isArray(params.layers)) {
+        latestLayers = params.layers;
+        layerTreeMeasurementAvailable = true;
+      }
+    };
+    cdp.on("LayerTree.layerTreeDidChange", onLayers);
+    try {
+      await cdp.send("LayerTree.enable");
+      layerTreeMeasurementAvailable = true;
+    } catch {
+      // LayerTree is optional; an unavailable domain must not look like zero pressure.
+    }
 
     await page.setViewport({
       deviceScaleFactor: viewport.dpr,
@@ -232,21 +248,6 @@ export class BrowserRunner {
     onProgress?.(
       `Capturing ${viewport.label} GPU compositor layer snapshot...`
     );
-    let latestLayers: RawCdpLayer[] = [];
-    let hasCapturedLayers = false;
-
-    const onLayers = (params: { layers?: RawCdpLayer[] }) => {
-      if (params.layers && params.layers.length > 0) {
-        latestLayers = params.layers;
-        hasCapturedLayers = true;
-      }
-    };
-    cdp.on("LayerTree.layerTreeDidChange", onLayers);
-    try {
-      await cdp.send("LayerTree.enable");
-    } catch {
-      // Best-effort enable; ignored if LayerTree domain is already active
-    }
 
     // Allow initial paint and layer tree delivery
     await sleep(1500);
@@ -593,7 +594,7 @@ export class BrowserRunner {
       compositedVramBytes: totalTextureVram,
       deviceContext: viewport.label,
       layerCount: textureCount,
-      measurementAvailable: hasCapturedLayers,
+      measurementAvailable: layerTreeMeasurementAvailable,
       tiledBackingBytes: totalTiledVram,
     });
 
