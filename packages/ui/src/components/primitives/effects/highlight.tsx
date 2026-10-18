@@ -245,7 +245,7 @@ function Highlight<T extends string>({ ref, ...props }: HighlightProps<T>) {
                   width: boundsState.width,
                 }}
                 className={cn(
-                  "absolute z-0 bg-muted",
+                  "bg-muted absolute z-0",
                   className,
                   activeClassNameState
                 )}
@@ -545,7 +545,7 @@ function HighlightItem({
               <motion.div
                 animate={{ opacity: 1 }}
                 className={cn(
-                  "absolute inset-0 z-0 bg-muted",
+                  "bg-muted absolute inset-0 z-0",
                   contextClassName,
                   activeClassName
                 )}
@@ -605,7 +605,7 @@ function HighlightItem({
             <motion.div
               animate={{ opacity: 1 }}
               className={cn(
-                "absolute inset-0 z-0 bg-muted",
+                "bg-muted absolute inset-0 z-0",
                 contextClassName,
                 activeClassName
               )}

@@ -76,13 +76,13 @@ export const DocsShellNavItem = memo(
           <>
             <motion.span
               animate={{ width: indicatorWidth }}
-              className="pointer-events-none absolute top-1/2 left-0 z-0 h-px -translate-y-1/2 bg-foreground/50"
+              className="bg-foreground/50 pointer-events-none absolute top-1/2 left-0 z-0 h-px -translate-y-1/2"
               initial={false}
               transition={{ damping: 30, stiffness: 600, type: "spring" }}
             />
-            <motion.span className="pointer-events-none absolute top-1/4 left-0 z-0 h-px w-[13px] bg-foreground/30" />
-            <motion.span className="pointer-events-none absolute top-0 left-0 z-0 h-px w-[16px] bg-foreground/30" />
-            <motion.span className="pointer-events-none absolute top-3/4 left-0 z-0 h-px w-[13px] bg-foreground/30" />
+            <motion.span className="bg-foreground/30 pointer-events-none absolute top-1/4 left-0 z-0 h-px w-[13px]" />
+            <motion.span className="bg-foreground/30 pointer-events-none absolute top-0 left-0 z-0 h-px w-[16px]" />
+            <motion.span className="bg-foreground/30 pointer-events-none absolute top-3/4 left-0 z-0 h-px w-[13px]" />
           </>
         )}
 
@@ -94,7 +94,7 @@ export const DocsShellNavItem = memo(
         >
           <Link
             className={cn(
-              "relative ml-2 flex select-none items-center gap-2 py-1.5 pl-4 text-sm",
+              "relative ml-2 flex items-center gap-2 py-1.5 pl-4 text-sm select-none",
               className
             )}
             href={href}

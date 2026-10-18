@@ -19,7 +19,7 @@ const SWITCH_SPRING = {
 } as const;
 
 const switchVariants = cva(
-  "peer group/switch relative inline-flex shrink-0 cursor-pointer select-none items-center rounded-full border border-transparent p-0.5 outline-none transition-colors after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 group-has-[:focus-visible]/field-label:border-transparent group-has-[:focus-visible]/field-label:ring-0 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-disabled:cursor-not-allowed data-[state=unchecked]:justify-start data-unchecked:justify-start data-[state=checked]:justify-end data-checked:justify-end data-checked:bg-primary data-unchecked:bg-input data-disabled:opacity-50 dark:data-unchecked:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+  "peer group/switch focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-checked:bg-primary data-unchecked:bg-input dark:data-unchecked:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 relative inline-flex shrink-0 cursor-pointer items-center rounded-full border border-transparent p-0.5 transition-colors outline-none select-none group-has-[:focus-visible]/field-label:border-transparent group-has-[:focus-visible]/field-label:ring-0 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 data-checked:justify-end data-disabled:cursor-not-allowed data-disabled:opacity-50 data-unchecked:justify-start data-[state=checked]:justify-end data-[state=unchecked]:justify-start",
   {
     defaultVariants: {
       size: "default",
@@ -35,7 +35,7 @@ const switchVariants = cva(
 );
 
 const switchThumbVariants = cva(
-  "pointer-events-none relative flex select-none items-center justify-center rounded-full bg-background shadow-xs ring-0 data-checked:bg-primary-foreground dark:data-checked:bg-primary-foreground dark:data-unchecked:bg-foreground [&_svg]:size-3",
+  "bg-background data-checked:bg-primary-foreground dark:data-checked:bg-primary-foreground dark:data-unchecked:bg-foreground pointer-events-none relative flex items-center justify-center rounded-full shadow-xs ring-0 select-none [&_svg]:size-3",
   {
     defaultVariants: {
       size: "default",
@@ -117,7 +117,7 @@ const SwitchLabel = ({
     {label && (
       <label
         className={cn(
-          "cursor-pointer select-none font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+          "cursor-pointer text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
           disabled && "cursor-not-allowed opacity-50",
           labelClassName
         )}
@@ -129,7 +129,7 @@ const SwitchLabel = ({
     {description && (
       <p
         className={cn(
-          "select-none text-muted-foreground text-xs leading-normal",
+          "text-muted-foreground text-xs leading-normal select-none",
           disabled && "opacity-50",
           descriptionClassName
         )}
@@ -202,7 +202,7 @@ const Switch = ({
             isChecked ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }
           }
           aria-hidden="true"
-          className="pointer-events-none absolute left-1 flex items-center justify-center text-primary-foreground [&_svg]:size-3"
+          className="text-primary-foreground pointer-events-none absolute left-1 flex items-center justify-center [&_svg]:size-3"
           initial={false}
           transition={
             prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }
@@ -218,7 +218,7 @@ const Switch = ({
             isChecked ? { opacity: 0, scale: 0.5 } : { opacity: 1, scale: 1 }
           }
           aria-hidden="true"
-          className="pointer-events-none absolute right-1 flex items-center justify-center text-muted-foreground [&_svg]:size-3"
+          className="text-muted-foreground pointer-events-none absolute right-1 flex items-center justify-center [&_svg]:size-3"
           initial={false}
           transition={
             prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }

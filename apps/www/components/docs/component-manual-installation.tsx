@@ -148,12 +148,12 @@ export const ComponentManualInstallation = ({
                 className={cn(
                   "pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center pb-3 transition-[height,background] duration-300",
                   isOpened
-                    ? "h-16 bg-gradient-to-t from-background/90 via-background/40 to-transparent"
-                    : "h-24 bg-gradient-to-t from-background via-background/80 to-transparent"
+                    ? "from-background/90 via-background/40 h-16 bg-gradient-to-t to-transparent"
+                    : "from-background via-background/80 h-24 bg-gradient-to-t to-transparent"
                 )}
               >
                 <Button
-                  className="pointer-events-auto h-7 rounded-full border border-border/40 bg-background/80 px-3 text-xs shadow-xs backdrop-blur-sm hover:bg-accent"
+                  className="border-border/40 bg-background/80 hover:bg-accent pointer-events-auto h-7 rounded-full border px-3 text-xs shadow-xs backdrop-blur-sm"
                   onClick={() => setIsOpened(!isOpened)}
                   type="button"
                   variant="secondary"

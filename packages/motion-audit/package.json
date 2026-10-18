@@ -38,8 +38,7 @@
     "test": "bun test tests",
     "test:math": "bun test tests/math",
     "bench:math": "bun bench/math/thrashing.bench.ts",
-    "bench:calibration": "bun bench/calibration/run.ts",
-    "bench": "bun bench:math && bun bench:calibration"
+    "bench": "bun bench:math"
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",

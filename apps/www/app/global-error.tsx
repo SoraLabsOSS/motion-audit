@@ -34,7 +34,7 @@ export default function GlobalError({
     <html className={cn(fontSfPro.variable, "font-sans")} lang="en">
       <body className="bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50">
         <div className="relative flex min-h-screen flex-col items-center justify-center space-y-4 px-6 text-center">
-          <h1 className="font-light font-mono text-7xl">500</h1>
+          <h1 className="font-mono text-7xl font-light">500</h1>
           <p className="font-mono text-base text-zinc-500 dark:text-zinc-400">
             Something went wrong!
           </p>

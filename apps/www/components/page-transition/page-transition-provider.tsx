@@ -336,7 +336,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
           {transitionMode === "docs" && showTyper && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6">
               <div
-                className="flex select-none items-center justify-center font-bold font-mono text-base uppercase tracking-normal transition-typer-banner sm:text-xl md:text-2xl lg:text-3xl"
+                className="transition-typer-banner flex items-center justify-center font-mono text-base font-bold tracking-normal uppercase select-none sm:text-xl md:text-2xl lg:text-3xl"
                 style={DOCS_TYPER_STYLE}
               >
                 <Typer

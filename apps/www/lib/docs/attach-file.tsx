@@ -17,7 +17,7 @@ const Badge = ({
     <span className="font-normal!">{name}</span>{" "}
     <span
       className={cn(
-        "text-nowrap font-black text-[17px] text-foreground leading-1",
+        "text-foreground text-[17px] leading-1 font-black text-nowrap",
         className
       )}
     >

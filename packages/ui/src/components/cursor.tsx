@@ -83,7 +83,7 @@ function Cursor({ className, ...props }: CursorProps) {
       {...props}
     >
       <motion.svg
-        className={cn("size-6 text-foreground", className)}
+        className={cn("text-foreground size-6", className)}
         style={{
           rotate,
           scale,
@@ -140,7 +140,7 @@ function CursorFollow({
     >
       <motion.div
         className={cn(
-          "rounded-md bg-foreground px-2 py-1 text-background text-sm",
+          "bg-foreground text-background rounded-md px-2 py-1 text-sm",
           className
         )}
         style={{

@@ -3,11 +3,13 @@
 import { Button } from "@workspace/ui/components/ui/button";
 import { useControlledState } from "@workspace/ui/hooks/use-controlled-state";
 import { cn } from "@workspace/ui/lib/utils";
-import { Check, Copy } from "lucide-react";
-import type * as React from "react";
+import { motion, useReducedMotion } from "motion/react";
+import type { ComponentProps, MouseEvent } from "react";
 import { useCallback } from "react";
 
-type ButtonProps = React.ComponentProps<typeof Button>;
+import { CopyIcon } from "@/components/icons/copy";
+
+type ButtonProps = ComponentProps<typeof Button>;
 
 type CopyButtonProps = Omit<ButtonProps, "children"> & {
   content?: string;
@@ -19,7 +21,7 @@ type CopyButtonProps = Omit<ButtonProps, "children"> & {
   delay?: number;
 };
 
-function CopyButton({
+const CopyButton = ({
   className,
   content,
   copied,
@@ -32,7 +34,7 @@ function CopyButton({
   size = "icon-sm",
   delay = 3000,
   ...props
-}: CopyButtonProps) {
+}: CopyButtonProps) => {
   const [isCopied, setIsCopied] = useControlledState({
     defaultValue: false,
     onChange: (val) => {
@@ -41,28 +43,26 @@ function CopyButton({
     },
     value: copied ?? isCopiedProp,
   });
+  const prefersReducedMotion = useReducedMotion();
 
   const handleCopy = useCallback(
-    (e: Parameters<NonNullable<ButtonProps["onClick"]>>[0]) => {
+    async (e: MouseEvent<HTMLButtonElement>) => {
       onClick?.(e);
-      if (isCopied) {
+      if (isCopied || !content) {
         return;
       }
-      if (content) {
-        navigator.clipboard
-          .writeText(content)
-          .then(() => {
-            setIsCopied(true);
-            onCopiedChange?.(true, content);
-            onCopy?.(content);
-            setTimeout(() => {
-              setIsCopied(false);
-              onCopiedChange?.(false);
-            }, delay);
-          })
-          .catch((error) => {
-            console.error("Error copying command", error);
-          });
+
+      try {
+        await navigator.clipboard.writeText(content);
+        setIsCopied(true);
+        onCopiedChange?.(true, content);
+        onCopy?.(content);
+        setTimeout(() => {
+          setIsCopied(false);
+          onCopiedChange?.(false);
+        }, delay);
+      } catch (error) {
+        console.error("Error copying command", error);
       }
     },
     [onClick, isCopied, content, setIsCopied, onCopiedChange, onCopy, delay]
@@ -70,16 +70,30 @@ function CopyButton({
 
   return (
     <Button
-      className={cn(className)}
+      asChild
+      className={cn("!size-7 rounded-[min(var(--radius-md),12px)]", className)}
       data-slot="copy-button"
-      onClick={handleCopy}
       size={size}
       variant={variant}
       {...props}
     >
-      {isCopied ? <Check size={16} /> : <Copy size={16} />}
+      <motion.button
+        onClick={handleCopy}
+        transition={{
+          damping: 30,
+          mass: 0.5,
+          stiffness: 500,
+          type: "spring",
+        }}
+        type="button"
+        whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
+        whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+      >
+        <CopyIcon animate={isCopied} size={16} />
+      </motion.button>
     </Button>
   );
-}
+};
 
 export { CopyButton, type CopyButtonProps };
+export { CopyIcon } from "@/components/icons/copy";

@@ -32,7 +32,7 @@ export const Callout = ({
   return (
     <div
       className={cn(
-        "my-4 flex gap-2 rounded-lg bg-fd-accent/50 p-3 ps-2 text-fd-card-foreground text-sm",
+        "bg-fd-accent/50 text-fd-card-foreground my-4 flex gap-2 rounded-lg p-3 ps-2 text-sm",
         className
       )}
       ref={ref}

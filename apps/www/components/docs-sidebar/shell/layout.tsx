@@ -63,7 +63,7 @@ export function DocsShell({
       <DocsShellHoverProvider containerRef={containerRef}>
         <aside
           className={cn(
-            "relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-background",
+            "bg-background relative flex min-h-0 w-full flex-1 flex-col overflow-hidden",
             className
           )}
         >

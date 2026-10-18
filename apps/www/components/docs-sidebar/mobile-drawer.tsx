@@ -101,7 +101,7 @@ export function DocsMobileDrawer({
         aria-hidden={isResponsive ? undefined : !show}
         aria-label={label}
         className={cn(
-          "flex min-h-0 flex-col overflow-hidden bg-fd-background outline-none",
+          "bg-fd-background flex min-h-0 flex-col overflow-hidden outline-none",
           isResponsive
             ? cn(
                 "max-md:fixed max-md:inset-y-2 max-md:start-2 max-md:z-40 max-md:w-[min(300px,calc(100vw-1.5rem))] max-md:max-w-[min(300px,calc(100vw-1.5rem))] max-md:rounded-2xl max-md:border max-md:text-[15px] max-md:shadow-lg",
@@ -110,7 +110,7 @@ export function DocsMobileDrawer({
                   ? "max-md:translate-x-0"
                   : "max-md:pointer-events-none max-md:-translate-x-[calc(100%+1.25rem)]",
                 raised && "max-md:z-[111]",
-                "md:pointer-events-auto md:fixed md:inset-s-0 md:top-(--fd-sidebar-top) md:bottom-(--fd-sidebar-margin,0px) md:z-20 md:translate-x-0 md:items-end md:rounded-none md:border-e md:bg-fd-card md:text-sm md:shadow-none",
+                "md:bg-fd-card md:pointer-events-auto md:fixed md:inset-s-0 md:top-(--fd-sidebar-top) md:bottom-(--fd-sidebar-margin,0px) md:z-20 md:translate-x-0 md:items-end md:rounded-none md:border-e md:text-sm md:shadow-none",
                 desktopClassName
               )
             : cn(

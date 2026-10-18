@@ -151,18 +151,18 @@ function CodeTabs({
   return (
     <div
       className={cn(
-        "w-full gap-0 overflow-hidden rounded-xl border border-border/60",
+        "border-border/60 w-full gap-0 overflow-hidden rounded-xl border",
         className
       )}
       data-slot="install-tabs"
       {...props}
     >
-      <div className="flex h-10 items-center justify-between border-border/50 border-b px-3">
+      <div className="border-border/50 flex h-10 items-center justify-between border-b px-3">
         <div className="flex items-center gap-0.5">
           {Object.keys(codes).map((code) => (
             <button
               className={cn(
-                "relative z-10 h-7 rounded-md px-3 font-medium text-sm transition-colors",
+                "relative z-10 h-7 rounded-md px-3 text-sm font-medium transition-colors",
                 selectedCode === code
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -178,7 +178,7 @@ function CodeTabs({
 
         {copyButton && highlightedCodes && (
           <CopyButton
-            className="-me-1 bg-transparent hover:bg-foreground/5 dark:hover:bg-foreground/10"
+            className="hover:bg-foreground/5 dark:hover:bg-foreground/10 -me-1 bg-transparent"
             content={codes[selectedCode]}
             onCopiedChange={onCopiedChange}
             size="icon-sm"
@@ -189,7 +189,7 @@ function CodeTabs({
 
       <div className="p-1.5">
         <div
-          className="rounded-lg bg-surface"
+          className="bg-surface rounded-lg"
           data-slot="install-tabs-contents"
         >
           {highlightedCodes && (
@@ -201,7 +201,7 @@ function CodeTabs({
               <ScrollArea className="max-h-[600px]">
                 <ScrollViewport className="w-full">
                   <div
-                    className="[&>pre,_&_code]:!bg-transparent [&_code]:!text-[13px] [&_code_.line]:!px-0 flex w-full items-center p-4 text-sm [&>pre,_&_code]:border-none [&>pre,_&_code]:[background:transparent_!important]"
+                    className="flex w-full items-center p-4 text-sm [&_code]:!text-[13px] [&_code_.line]:!px-0 [&>pre,_&_code]:border-none [&>pre,_&_code]:!bg-transparent [&>pre,_&_code]:[background:transparent_!important]"
                     // biome-ignore lint/security/noDangerouslySetInnerHtml: highlighted code HTML from shiki
                     dangerouslySetInnerHTML={{
                       __html: highlightedCodes[selectedCode] ?? "",

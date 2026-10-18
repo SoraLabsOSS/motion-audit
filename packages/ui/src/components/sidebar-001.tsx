@@ -174,7 +174,7 @@ function HoverHighlight() {
             opacity: 1,
             top: hoverRect.top + 2,
           }}
-          className="pointer-events-none absolute z-0 rounded-md bg-accent/50"
+          className="bg-accent/50 pointer-events-none absolute z-0 rounded-md"
           exit={{ opacity: 0 }}
           initial={false}
           key="sb001-hover-bg"
@@ -294,7 +294,7 @@ export const Sidebar001Item = memo(
       <>
         <span className="relative z-1 truncate">{label}</span>
         {isNew && (
-          <span className="size-1.5 shrink-0 rounded-full bg-accent-pro" />
+          <span className="bg-accent-pro size-1.5 shrink-0 rounded-full" />
         )}
       </>
     );
@@ -304,7 +304,7 @@ export const Sidebar001Item = memo(
         {isActive && (
           <motion.span
             animate={{ width: 23 }}
-            className="pointer-events-none absolute top-1/2 left-[4px] z-10 h-[1.8px] -translate-y-1/2 rounded-full bg-accent-pro"
+            className="bg-accent-pro pointer-events-none absolute top-1/2 left-[4px] z-10 h-[1.8px] -translate-y-1/2 rounded-full"
             layoutId="sb001-active-bar"
             transition={{ damping: 40, stiffness: 800, type: "spring" }}
           />
@@ -312,12 +312,12 @@ export const Sidebar001Item = memo(
 
         <motion.span
           animate={{ width: indicatorWidth }}
-          className="pointer-events-none absolute top-1/2 left-0 h-px -translate-y-1/2 bg-foreground/50"
+          className="bg-foreground/50 pointer-events-none absolute top-1/2 left-0 h-px -translate-y-1/2"
           transition={{ damping: 30, stiffness: 600, type: "spring" }}
         />
-        <motion.span className="pointer-events-none absolute top-1/4 left-0 h-px w-[13px] bg-foreground/30" />
-        <motion.span className="pointer-events-none absolute top-0 left-0 h-px w-[16px] bg-foreground/30" />
-        <motion.span className="pointer-events-none absolute top-3/4 left-0 h-px w-[13px] bg-foreground/30" />
+        <motion.span className="bg-foreground/30 pointer-events-none absolute top-1/4 left-0 h-px w-[13px]" />
+        <motion.span className="bg-foreground/30 pointer-events-none absolute top-0 left-0 h-px w-[16px]" />
+        <motion.span className="bg-foreground/30 pointer-events-none absolute top-3/4 left-0 h-px w-[13px]" />
 
         <motion.div
           animate={{ opacity, x }}
@@ -368,7 +368,7 @@ export function Sidebar001Separator({
   return (
     <div
       className={cn(
-        "mt-2 px-0 py-3.5 font-medium text-foreground/40 text-sm",
+        "text-foreground/40 mt-2 px-0 py-3.5 text-sm font-medium",
         className
       )}
     >
@@ -427,7 +427,7 @@ export function Sidebar001Group({
   return (
     <div className={cn("flex flex-col", className)}>
       <button
-        className="group relative z-1 flex w-full select-none items-center gap-1.5 py-1.5 pr-2 text-left"
+        className="group relative z-1 flex w-full items-center gap-1.5 py-1.5 pr-2 text-left select-none"
         onClick={() => setIsOpen((v) => !v)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -436,15 +436,15 @@ export function Sidebar001Group({
       >
         {icon ? (
           <>
-            <span className="shrink-0 text-foreground/35 [&_svg]:size-3.5">
+            <span className="text-foreground/35 shrink-0 [&_svg]:size-3.5">
               {icon}
             </span>
-            <span className="flex-1 text-foreground/45 text-sm transition-colors duration-150 group-hover:text-foreground/70">
+            <span className="text-foreground/45 group-hover:text-foreground/70 flex-1 text-sm transition-colors duration-150">
               {label}
             </span>
             <MotionChevron
               animate={{ rotate: isOpen ? 90 : 0 }}
-              className="mr-1 shrink-0 text-foreground/25"
+              className="text-foreground/25 mr-1 shrink-0"
               size={14}
               strokeWidth={2.5}
               transition={{ damping: 30, stiffness: 500, type: "spring" }}
@@ -454,12 +454,12 @@ export function Sidebar001Group({
           <>
             <MotionChevron
               animate={{ rotate: isOpen ? 90 : 0 }}
-              className="shrink-0 text-foreground/35"
+              className="text-foreground/35 shrink-0"
               size={11}
               strokeWidth={2.5}
               transition={{ damping: 30, stiffness: 500, type: "spring" }}
             />
-            <span className="text-foreground/45 text-sm transition-colors duration-150 group-hover:text-foreground/70">
+            <span className="text-foreground/45 group-hover:text-foreground/70 text-sm transition-colors duration-150">
               {label}
             </span>
           </>
@@ -589,7 +589,7 @@ export function Sidebar001({
       <HoverProvider containerRef={containerRef}>
         <aside
           className={cn(
-            "relative flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden bg-background",
+            "bg-background relative flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden",
             className
           )}
           style={isMobile ? { width } : undefined}
@@ -603,7 +603,7 @@ export function Sidebar001({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           >
-            <div className="absolute top-0 right-0 h-full w-px bg-border/50 transition-colors duration-150 group-hover/handle:bg-border" />
+            <div className="bg-border/50 group-hover/handle:bg-border absolute top-0 right-0 h-full w-px transition-colors duration-150" />
           </div>
         </aside>
       </HoverProvider>
@@ -637,7 +637,7 @@ export function Sidebar001Footer({
   return (
     <div
       className={cn(
-        "shrink-0 border-border/50 border-t px-3 pt-2 pb-4",
+        "border-border/50 shrink-0 border-t px-3 pt-2 pb-4",
         className
       )}
     >

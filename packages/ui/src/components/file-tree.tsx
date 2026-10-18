@@ -289,7 +289,7 @@ function FileTreeFolder({ node }: { node: FileTreeElement }) {
           </div>
         </button>
         <div
-          className="relative ml-6 before:absolute before:inset-y-0 before:-left-2 before:h-full before:w-px before:bg-border"
+          className="before:bg-border relative ml-6 before:absolute before:inset-y-0 before:-left-2 before:h-full before:w-px"
           style={indentSize === 24 ? undefined : { marginLeft: indentSize }}
         >
           <FolderContent>
@@ -355,7 +355,7 @@ export function FileTree({
     >
       <div
         className={cn(
-          "overflow-hidden rounded-xl border border-border/60",
+          "border-border/60 overflow-hidden rounded-xl border",
           className
         )}
       >
@@ -366,7 +366,7 @@ export function FileTree({
           onMouseLeave={() => setHighlightBounds(null)}
           ref={containerRef}
         >
-          <FileTreeHoverHighlight className="z-0 rounded-lg border border-accent/45 bg-accent/55" />
+          <FileTreeHoverHighlight className="border-accent/45 bg-accent/55 z-0 rounded-lg border" />
           {elements.map((node) => (
             <FileTreeNode key={node.id} node={node} />
           ))}

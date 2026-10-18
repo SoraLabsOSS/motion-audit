@@ -10,9 +10,7 @@ import {
 } from "fumadocs-ui/components/ui/popover";
 import { useCopyButton } from "fumadocs-ui/utils/use-copy-button";
 import {
-  Check,
   ChevronDown,
-  Copy,
   ExternalLinkIcon,
   MessageCircleIcon,
   TextIcon,
@@ -21,6 +19,7 @@ import { LayoutGroup, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 
+import { CopyIcon } from "@/components/icons/copy";
 import { SITE_URL } from "@/lib/site";
 
 const cache = new Map<string, string>();
@@ -70,14 +69,14 @@ export function LLMCopyButton({
       onClick={onClick}
       type="button"
     >
-      {checked ? <Check size={14} /> : <Copy size={14} />}
+      <CopyIcon animate={checked} size={14} />
       Copy Markdown
     </button>
   );
 }
 
 const optionVariants = cva(
-  "inline-flex items-center gap-2 rounded-lg p-2 text-sm hover:bg-fd-accent hover:text-fd-accent-foreground [&_svg]:size-4"
+  "hover:bg-fd-accent hover:text-fd-accent-foreground inline-flex items-center gap-2 rounded-lg p-2 text-sm [&_svg]:size-4"
 );
 
 export function ViewOptions({
@@ -261,7 +260,7 @@ export function ViewOptions({
         )}
       >
         Open
-        <ChevronDown className="size-3.5 text-fd-muted-foreground" />
+        <ChevronDown className="text-fd-muted-foreground size-3.5" />
       </PopoverTrigger>
       <PopoverContent className="flex flex-col overflow-auto">
         {items.map((item) => (
@@ -274,7 +273,7 @@ export function ViewOptions({
           >
             {item.icon}
             {item.title}
-            <ExternalLinkIcon className="ms-auto size-3.5 text-fd-muted-foreground" />
+            <ExternalLinkIcon className="text-fd-muted-foreground ms-auto size-3.5" />
           </a>
         ))}
       </PopoverContent>

@@ -55,8 +55,7 @@ Forced synchronous layouts (Layout Thrashing) are evaluated using the Chromium C
     \text{otherwise}
   \end{cases}
   $$
-- **Final Penalty & Score:**
-  $$\text{Penalty} = \min(100,\, \text{round}(\text{RuntimePenalty} \cdot \mathcal{M}_{\text{consecutive}} + \text{InitPenalty})), \quad \text{Score} = \max(0,\, 100 - \text{Penalty})$$
+- **Final Penalty & Score:** $$\text{Penalty} = \min(100,\, \text{round}(\text{RuntimePenalty} \cdot \mathcal{M}_{\text{consecutive}} + \text{InitPenalty})), \quad \text{Score} = \max(0,\, 100 - \text{Penalty})$$
 
 ---
 
@@ -74,19 +73,19 @@ If multiple animations coexist ($N \ge 3$) and the worst offender represents a c
 
 Each viewport (Desktop and Mobile) calculates a composite score across the weighted pillars that are available:
 
-| Pillar                | Metric Focus                                         | Weight ($\omega_i$) |
-| :-------------------- | :--------------------------------------------------- | :------------------ |
-| **Animations**        | Keyframes, WAAPI, pipeline invalidation stage        | $0.35$ ($35\%$)     |
-| **Scroll Dynamics**   | Scroll timelines, passive listener compliance        | $0.25$ ($25\%$)     |
-| **Layout Thrashing**  | Interleaved DOM read/write reflow chains             | $0.25$ ($25\%$)     |
-| **GPU VRAM Pressure** | Composited layer count, texture RAM, tiled scrollers | $0.15$ ($15\%$)     |
+| Pillar | Metric Focus | Weight ($\omega_i$) |
+| :-- | :-- | :-- |
+| **Animations** | Keyframes, WAAPI, pipeline invalidation stage | $0.35$ ($35\%$) |
+| **Scroll Dynamics** | Scroll timelines, passive listener compliance | $0.25$ ($25\%$) |
+| **Layout Thrashing** | Interleaved DOM read/write reflow chains | $0.25$ ($25\%$) |
+| **GPU VRAM Pressure** | Composited layer count, texture RAM, tiled scrollers | $0.15$ ($15\%$) |
 
 $$\text{RawViewportScore} = \text{round}\left(\sum \text{Score}_i \cdot \omega_i\right)$$
 
 When a pillar is unavailable, the implementation renormalizes over the supplied pillars. Missing telemetry must not be represented as a measured zero or a perfect score; callers should provide an explicit neutral/unavailable result when they need that signal included.
 
-**Pipeline Bottleneck Coupling (Amdahl's Law):**
-Main-thread frame execution is strictly sequential (Script $\to$ Layout $\to$ Paint $\to$ Composite). A catastrophic breakdown in any single pillar creates a hard frame-rate bottleneck. Thus:
+**Pipeline Bottleneck Coupling (Amdahl's Law):** Main-thread frame execution is strictly sequential (Script $\to$ Layout $\to$ Paint $\to$ Composite). A catastrophic breakdown in any single pillar creates a hard frame-rate bottleneck. Thus:
+
 - If $\min(\text{Score}_i) < 15 \implies \text{ViewportScore} \le 59$ (Tier B ceiling).
 - If $\min(\text{Score}_i) < 30 \implies \text{ViewportScore} \le 75$ (Tier A ceiling).
 
@@ -96,18 +95,16 @@ Main-thread frame execution is strictly sequential (Script $\to$ Layout $\to$ Pa
 
 Numeric scores translate into discrete **project-defined operational tiers**. These labels are not industry certification levels or official browser performance grades:
 
-| Tier  | Score Range   | Operational Meaning                                                |
-| :---- | :------------ | :----------------------------------------------------------------- |
-| **S** | $[80,\, 100]$ | Pristine. Compositor-only, minimal VRAM, 0 thrashing.              |
-| **A** | $[60,\, 79]$  | Smooth. Negligible main-thread impact, within hardware limits.     |
-| **B** | $[40,\, 59]$  | Acceptable. Minor paint overhead or isolated reflow.               |
-| **C** | $[20,\, 39]$  | Degraded. Significant paint or unbatched layout work.              |
-| **D** | $[10,\, 19]$  | Poor. Continuous layout animations, elevated memory pressure.      |
-| **F** | $[0,\, 9]$    | Critical. Uncontrolled layout thrashing, extreme jank risk.        |
+| Tier | Score Range | Operational Meaning |
+| :-- | :-- | :-- |
+| **S** | $[80,\, 100]$ | Pristine. Compositor-only, minimal VRAM, 0 thrashing. |
+| **A** | $[60,\, 79]$ | Smooth. Negligible main-thread impact, within hardware limits. |
+| **B** | $[40,\, 59]$ | Acceptable. Minor paint overhead or isolated reflow. |
+| **C** | $[20,\, 39]$ | Degraded. Significant paint or unbatched layout work. |
+| **D** | $[10,\, 19]$ | Poor. Continuous layout animations, elevated memory pressure. |
+| **F** | $[0,\, 9]$ | Critical. Uncontrolled layout thrashing, extreme jank risk. |
 
-The overall audit grade synthesizes Desktop and Mobile results:
-$$\text{OverallScore} = \text{round}\left(\frac{\text{DesktopScore} + \text{MobileScore}}{2}\right)$$
-$$\text{OverallTier} = \text{averageTier}(\text{DesktopTier},\, \text{MobileTier})$$
+The overall audit grade synthesizes Desktop and Mobile results: $$\text{OverallScore} = \text{round}\left(\frac{\text{DesktopScore} + \text{MobileScore}}{2}\right)$$ $$\text{OverallTier} = \text{averageTier}(\text{DesktopTier},\, \text{MobileTier})$$
 
 ---
 

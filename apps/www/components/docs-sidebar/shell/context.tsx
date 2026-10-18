@@ -119,7 +119,7 @@ export function DocsShellHoverHighlight() {
             opacity: 1,
             top: hoverRect.top + 2,
           }}
-          className="pointer-events-none absolute z-0 rounded-md bg-accent/50"
+          className="bg-accent/50 pointer-events-none absolute z-0 rounded-md"
           exit={{ opacity: 0 }}
           initial={false}
           key="docs-shell-hover-bg"

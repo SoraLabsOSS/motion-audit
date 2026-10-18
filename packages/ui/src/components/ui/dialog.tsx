@@ -196,7 +196,7 @@ function DialogContent({
           >
             <DialogPrimitive.Popup
               className={cn(
-                "pointer-events-auto relative grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-background p-6 text-foreground text-sm shadow-2xl outline-none sm:max-w-lg",
+                "border-border bg-background text-foreground pointer-events-auto relative grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border p-6 text-sm shadow-2xl outline-none sm:max-w-lg",
                 className
               )}
               data-slot="dialog-content"
@@ -266,7 +266,7 @@ function DialogContent({
               {showCloseButton && (
                 <DialogPrimitive.Close
                   aria-label="Close"
-                  className="absolute top-4 right-4 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-70 transition-opacity hover:bg-muted hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none"
+                  className="text-muted-foreground hover:bg-muted focus-visible:ring-ring absolute top-4 right-4 inline-flex size-7 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 disabled:pointer-events-none"
                   data-slot="dialog-close-button"
                   render={
                     <motion.button
@@ -318,7 +318,7 @@ function DialogFooter({
   return (
     <div
       className={cn(
-        "-mx-6 mt-2 -mb-6 flex flex-col-reverse gap-2 rounded-b-xl border-border border-t bg-muted/40 p-4 sm:flex-row sm:justify-end",
+        "border-border bg-muted/40 -mx-6 mt-2 -mb-6 flex flex-col-reverse gap-2 rounded-b-xl border-t p-4 sm:flex-row sm:justify-end",
         className
       )}
       data-slot="dialog-footer"
@@ -341,7 +341,7 @@ function DialogTitle({ className, ...props }: DialogTitleProps) {
   return (
     <DialogPrimitive.Title
       className={cn(
-        "font-semibold text-foreground text-lg leading-none tracking-tight",
+        "text-foreground text-lg leading-none font-semibold tracking-tight",
         className
       )}
       data-slot="dialog-title"

@@ -364,7 +364,7 @@ export const DocsSidebar = (
       <DocsShellHeader className="flex items-center justify-between border-b px-4 py-3 md:hidden">
         <Link
           aria-label="Motion Audit home"
-          className="flex items-center gap-2 rounded-md outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+          className="focus-visible:ring-ring flex items-center gap-2 rounded-md transition-opacity outline-none hover:opacity-80 focus-visible:ring-2"
           href="/"
           onClick={(e) => {
             if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
@@ -376,7 +376,7 @@ export const DocsSidebar = (
           }}
         >
           <IconLogo size="sm" />
-          <span className="font-semibold text-sm">Motion Audit</span>
+          <span className="text-sm font-semibold">Motion Audit</span>
         </Link>
         <button
           aria-label="Close menu"
@@ -440,7 +440,7 @@ export const DocsSidebar = (
                   aria-label={link.label}
                   className={cn(
                     buttonVariants({ color: "ghost", size: "icon" }),
-                    "size-8 p-0 text-fd-muted-foreground [&_svg]:size-4.5",
+                    "text-fd-muted-foreground size-8 p-0 [&_svg]:size-4.5",
                     link.url ===
                       links.filter((l) => l.type === "icon").at(-1)?.url &&
                       "me-auto"

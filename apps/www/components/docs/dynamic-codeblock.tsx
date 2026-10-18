@@ -60,7 +60,7 @@ function DynamicCodeBlockLoading({
       icon={icon}
       title={title}
     >
-      <Pre className="flex min-h-[360px] items-center justify-center gap-2 text-muted-foreground">
+      <Pre className="text-muted-foreground flex min-h-[360px] items-center justify-center gap-2">
         <Loader aria-hidden className="size-4 animate-spin" />
         <span className="text-sm">Loading code…</span>
       </Pre>

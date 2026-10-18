@@ -27,7 +27,7 @@ const LABEL_OFFSET_BY_SIZE = {
 } as const;
 
 const slidingChipButtonVariants = cva(
-  "inline-flex min-w-0 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap font-mono uppercase outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+  "inline-flex min-w-0 shrink-0 cursor-pointer items-center justify-center font-mono whitespace-nowrap uppercase outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
   {
     defaultVariants: {
       size: "default",
@@ -66,7 +66,7 @@ const slidingChipButtonChipVariants = cva(
         accent: "bg-[rgba(251,70,13)] text-neutral-950",
         ghost: "bg-muted text-foreground",
         inverted: "bg-foreground text-background",
-        outline: "border border-foreground bg-transparent text-foreground",
+        outline: "border-foreground text-foreground border bg-transparent",
       },
     },
   }
@@ -89,7 +89,7 @@ const slidingChipButtonLabelVariants = cva(
         accent: "bg-[rgba(251,70,13)] text-neutral-950",
         ghost: "bg-muted text-foreground",
         inverted: "bg-foreground text-background",
-        outline: "border border-foreground bg-transparent text-foreground",
+        outline: "border-foreground text-foreground border bg-transparent",
       },
     },
   }

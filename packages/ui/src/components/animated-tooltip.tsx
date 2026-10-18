@@ -347,7 +347,7 @@ function AnimatedTooltipGroup({
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center gap-2 whitespace-nowrap px-2 font-medium text-background text-sm leading-tight tracking-tight",
+                      "text-background flex items-center justify-center gap-2 px-2 text-sm leading-tight font-medium tracking-tight whitespace-nowrap",
                       item.contentClassName
                     )}
                   >
@@ -358,7 +358,7 @@ function AnimatedTooltipGroup({
             </div>
           ))}
           <motion.div
-            className="absolute top-0 left-0 flex bg-foreground"
+            className="bg-foreground absolute top-0 left-0 flex"
             style={{
               clipPath,
               opacity,
@@ -376,7 +376,7 @@ function AnimatedTooltipGroup({
                 >
                   <div
                     className={cn(
-                      "flex items-center justify-center gap-2 whitespace-nowrap px-2 font-medium text-background text-sm leading-tight tracking-tight",
+                      "text-background flex items-center justify-center gap-2 px-2 text-sm leading-tight font-medium tracking-tight whitespace-nowrap",
                       item.contentClassName
                     )}
                   >

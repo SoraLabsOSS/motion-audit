@@ -23,10 +23,10 @@ import {
 import { LucideIcons } from "@/components/icons/lucide-icons";
 
 const Icon = ({ children }: { children: React.ReactNode }) => (
-  <span className="relative flex size-5 items-center justify-center rounded-[5px] bg-border text-muted-foreground [&_svg]:size-[12px]">
+  <span className="bg-border text-muted-foreground relative flex size-5 items-center justify-center rounded-[5px] [&_svg]:size-[12px]">
     {children}
 
-    <span className="absolute top-full left-1/2 h-[8px] w-px translate-x-[calc(-50%-0.5px)] bg-border" />
+    <span className="bg-border absolute top-full left-1/2 h-[8px] w-px translate-x-[calc(-50%-0.5px)]" />
   </span>
 );
 

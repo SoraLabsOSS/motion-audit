@@ -34,15 +34,19 @@ Motion Audit bridges this gap by providing dedicated diagnostics for motion and 
 Motion Audit evaluates animation performance across four architectural pillars:
 
 ### Execution Pipeline Cost
+
 Different CSS properties and animation APIs impose vastly different computational costs on the browser rendering pipeline. Properties like `transform` and `opacity` can often be handled by the compositor without requiring main-thread layout or paint work, whereas paint- and layout-triggering properties demand repeated rasterization passes or full geometry reflows.
 
 ### Scroll Dynamics
+
 Evaluates how scroll-linked motion is driven. Declarative CSS scroll-driven animations (`scroll-timeline`, `view-timeline`) can enable browser-managed scroll-linked motion without requiring a synchronous JavaScript scroll loop. `IntersectionObserver` provides an asynchronous mechanism for reacting to visibility changes without continuously sampling scroll position.
 
 ### Layout Stability & Thrashing
+
 Detects rapid cycles of DOM reads and writes that defeat browser batching optimizations, forcing the rendering engine into expensive synchronous layout cycles.
 
 ### GPU Memory & Layer Health
+
 Monitors composited layer geometry, surface area, and related memory estimates to identify patterns that may contribute to excessive GPU texture allocation and implicit layer-promotion overhead.
 
 ---
@@ -52,7 +56,7 @@ Monitors composited layer geometry, surface area, and related memory estimates t
 Motion Audit synthesizes diagnostic signals into an intuitive, qualitative **S-to-F tier hierarchy**:
 
 | Tier | Qualitative Classification | Operational Meaning |
-| :--- | :------------------------- | :------------------ |
+| :-- | :-- | :-- |
 | **S** | **Pristine** | Compositor-friendly execution with minimal measured overhead. |
 | **A** | **Smooth** | Negligible main-thread impact, well within standard hardware budgets. |
 | **B** | **Acceptable** | Functional performance with minor paint overhead or measurement cycles. |
@@ -64,11 +68,6 @@ Motion Audit synthesizes diagnostic signals into an intuitive, qualitative **S-t
 
 ## Methodological Attribution
 
-Motion Audit uses the publicly documented S-to-F grading hierarchy from
-**MotionScore** by Motion.dev with permission.
+Motion Audit uses the publicly documented S-to-F grading hierarchy from **MotionScore** by Motion.dev with permission.
 
-The technical architecture, diagnostic heuristics, browser instrumentation,
-quantitative scoring model, and evaluation models in Motion Audit are
-developed independently by SoraLabs, grounded in W3C web platform
-specifications, Chromium rendering architecture, and empirical browser
-performance analysis.
+The technical architecture, diagnostic heuristics, browser instrumentation, quantitative scoring model, and evaluation models in Motion Audit are developed independently by SoraLabs, grounded in W3C web platform specifications, Chromium rendering architecture, and empirical browser performance analysis.
