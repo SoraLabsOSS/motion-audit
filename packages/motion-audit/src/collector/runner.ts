@@ -890,9 +890,11 @@ export class BrowserRunner {
         const sanitizeSelector = (sel: string): string =>
           (sel || "").replaceAll(/:nth-child\(\d+\)/gu, wildcard);
 
-        // Deduplicate JS animations if already managed by WAAPI on the same element
+        // Deduplicate JS animations if already managed by WAAPI on the same element.
+        // Must use waapiCaptured, not the one-shot enumerate, otherwise JS
+        // animations duplicating a short-lived WAAPI animation slip through.
         const waapiKeys = new Set(
-          capturedAnims.flatMap((a) =>
+          waapiCaptured.flatMap((a) =>
             a.properties.map(
               (p) => `${sanitizeSelector(a.selector)}:${p.toLowerCase()}`
             )
