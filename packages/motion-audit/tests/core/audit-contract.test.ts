@@ -22,9 +22,9 @@ const createMockViewport = (
   animationsScore: overallScore,
   animationsTier: tierFromScore(overallScore),
   frameTiming: evaluateMeasuredFrameTiming({
-    supported: true,
     entryCount: blockingMs > 0 ? 2 : 0,
     maxDurationMs: 50 + blockingMs,
+    supported: true,
     totalBlockingDurationMs: blockingMs,
   }),
   gpuScore: overallScore,
