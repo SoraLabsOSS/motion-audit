@@ -1,3 +1,5 @@
+import type { MeasuredFrameTiming } from "./math/frame-timing.js";
+
 export type Tier = "S" | "A" | "B" | "C" | "D" | "F";
 
 export interface ViewportConfig {
@@ -22,13 +24,17 @@ export interface CdpLayer {
   isOverlapPromoted?: boolean;
   compositedVramBytes: number;
   selector?: string;
+  notes?: ("TILED" | "OVERLAP" | "WILL-CHANGE")[];
+  tier?: Tier;
 }
 
-export type AnimationSource =
-  | "css-transition"
-  | "css-animation"
+export type AnimationSource = "css-animation" | "waapi" | "js-loop";
+
+export type AnimationKind =
   | "waapi"
-  | "js-loop";
+  | "javascript"
+  | "scroll-linked"
+  | "scroll-triggered";
 
 export interface CapturedAnimation {
   id: string;
@@ -41,6 +47,12 @@ export interface CapturedAnimation {
   isOffscreen?: boolean;
   tier: Tier;
   frames?: number[];
+  kind?: AnimationKind;
+  trigger?: string;
+  notes?: string[];
+  hasWillChange?: boolean;
+  isPromoted?: boolean;
+  frameCount?: number;
 }
 
 export interface CapturedScroll {
@@ -49,6 +61,10 @@ export interface CapturedScroll {
   usesRafOrDebounce: boolean;
   hasLayoutOnScroll: boolean;
   selectors: string[];
+  scrollLinkedCount?: number;
+  scrollTriggeredCount?: number;
+  waapiCount?: number;
+  jsCount?: number;
 }
 
 export interface LongAnimationFrameTelemetry {
@@ -58,6 +74,11 @@ export interface LongAnimationFrameTelemetry {
   maxDurationMs: number;
   totalBlockingDurationMs: number;
 }
+
+export type {
+  FrameTimingVerdict,
+  MeasuredFrameTiming,
+} from "./math/frame-timing.js";
 
 export interface LayerSnapshotDelta {
   beforeCount: number;
@@ -81,9 +102,18 @@ export interface ScrollPhaseTelemetry {
   scrollTriggeredCandidateCount: number;
 }
 
+export interface ThrashingBreakdown {
+  mountCount: number;
+  frameCount: number;
+  maxConcurrentRaf: number;
+}
+
 export interface ViewportAuditResult {
+  measured?: boolean;
   viewport: ViewportConfig;
   vramBytes: number;
+  textureVramBytes?: number;
+  tiledVramBytes?: number;
   layerCount: number;
   gpuScore: number;
   gpuTier: Tier;
@@ -93,12 +123,18 @@ export interface ViewportAuditResult {
   scrollTier: Tier;
   thrashingScore: number;
   thrashingTier: Tier;
+  thrashingBreakdown?: ThrashingBreakdown;
   overallScore: number;
   overallTier: Tier;
   animations: CapturedAnimation[];
   scroll: CapturedScroll;
   layers: CdpLayer[];
   longAnimationFrames?: LongAnimationFrameTelemetry;
+  /**
+   * Measured main-thread blocking. This is the only figure in the report produced
+   * by the browser's own frame timings rather than by the audit's inferred model.
+   */
+  frameTiming?: MeasuredFrameTiming;
   layerSnapshotDelta?: LayerSnapshotDelta;
   animationFrameSamples?: AnimationFrameSample[];
   scrollPhase?: ScrollPhaseTelemetry;
@@ -106,12 +142,12 @@ export interface ViewportAuditResult {
 
 export type FindingCategory =
   | "gpu"
-  | "blur"
   | "will-change"
   | "layout-animation"
   | "scroll"
   | "thrashing"
-  | "offscreen-animation";
+  | "offscreen-animation"
+  | "overlap";
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 
@@ -130,7 +166,20 @@ export interface AuditFinding {
 export interface MotionAuditReport {
   url: string;
   timestamp: string;
+  /**
+   * Primary result. Measured main-thread blocking from the Long Animation Frames
+   * API, anchored on the published 50ms LoAF threshold and 200ms INP ceiling.
+   * Prefer this over `overallScore` when the two disagree: this one is recorded
+   * by the browser, the other is the audit's inferred model.
+   */
+  frameTiming: MeasuredFrameTiming;
+  /**
+   * Composite of the four inferred model pillars (animations, scroll, thrashing,
+   * GPU). Diagnostic, not a measurement: its band edges and weights are
+   * unvalidated operational targets.
+   */
   overallScore: number;
+  /** Tier derived from the inferred model score above. */
   overallTier: Tier;
   desktop: ViewportAuditResult;
   mobile: ViewportAuditResult;

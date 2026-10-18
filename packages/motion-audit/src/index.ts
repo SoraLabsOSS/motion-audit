@@ -4,11 +4,13 @@ import {
   MOBILE_VIEWPORT,
 } from "./collector/runner.js";
 import { generateAuditFindings } from "./diagnostics/findings.js";
+import { combineFrameTiming } from "./math/frame-timing.js";
 import { synthesizeOverallAudit } from "./math/scoring-engine.js";
 import type { MotionAuditReport, ViewportAuditResult } from "./types.js";
 
 export type {
   AnimationFrameSample,
+  AnimationKind,
   AnimationSource,
   AuditFinding,
   CapturedAnimation,
@@ -47,10 +49,15 @@ export {
   calculateOffscreenPenaltyMultiplier,
   calculatePaintAreaMultiplier,
   calculateScrollBehaviorPenalty,
+  calculateScrollDrivenAnimationPenalty,
   calculateScrollListenerPenalty,
   classifyPropertyCost,
   classifyPropertyStage,
+  CONDITIONALLY_COMPOSITABLE_PROPERTIES,
+  COMPOSITOR_FALLBACK_COST,
   getMaxPropertyCost,
+  isConditionallyCompositable,
+  resolveEffectivePropertyCost,
   MAX_SCROLL_CONTENTION_PENALTY,
   normalizeCssProperty,
   OFFSCREEN_MUTATION_PENALTY_MULTIPLIER,
@@ -58,14 +65,30 @@ export {
   RAIL_INSTANT_RESPONSE_MS,
   type PipelineStage,
   type ScrollBehaviorMetrics,
+  type ScrollDrivenAnimationMetrics,
 } from "./math/scaling.js";
 
 export {
+  combineFrameTiming,
+  evaluateMeasuredFrameTiming,
+  interpolateBlockingBudget,
+  FRAME_BUDGET_MS,
+  INP_CEILING_MS,
+  LOAF_THRESHOLD_MS,
+  type FrameTimingVerdict,
+  type MeasuredFrameTelemetry,
+  type MeasuredFrameTiming,
+} from "./math/frame-timing.js";
+
+export {
+  calculateConcurrencyPenalty,
   calculateP75FrameConcurrency,
   calculatePeakFrameConcurrency,
   calculatePercentile,
   computeEffectiveConcurrency,
   computePerFrameCounts,
+  CONCURRENCY_FREE_LOAD,
+  MAX_CONCURRENCY_PENALTY,
   type ConcurrencyMetrics,
   type FrameActiveEntry,
 } from "./math/concurrency.js";
@@ -74,6 +97,7 @@ export {
   analyzeLayoutThrashing,
   calculateLongestReflowBurst,
   computeMaxConsecutiveRun,
+  MIN_CONSECUTIVE_REFLOW_FRAMES,
   type ThrashViolation,
   type ThrashingAnalysisResult,
 } from "./math/thrashing-graph.js";
@@ -124,7 +148,11 @@ export const audit = async (
         MOBILE_VIEWPORT,
         options.onProgress
       );
-      desktopResult = { ...mobileResult, viewport: DESKTOP_VIEWPORT };
+      desktopResult = {
+        ...mobileResult,
+        measured: false,
+        viewport: DESKTOP_VIEWPORT,
+      };
     } else if (options.desktopOnly) {
       options.onProgress?.("Auditing desktop viewport...");
       desktopResult = await runner.auditViewport(
@@ -132,7 +160,11 @@ export const audit = async (
         DESKTOP_VIEWPORT,
         options.onProgress
       );
-      mobileResult = { ...desktopResult, viewport: MOBILE_VIEWPORT };
+      mobileResult = {
+        ...desktopResult,
+        measured: false,
+        viewport: MOBILE_VIEWPORT,
+      };
     } else {
       options.onProgress?.("Auditing desktop viewport (1440x900 @ DPR 2)...");
       desktopResult = await runner.auditViewport(
@@ -151,15 +183,17 @@ export const audit = async (
 
     const synthesized = synthesizeOverallAudit(
       desktopResult.overallScore,
-      mobileResult.overallScore,
-      desktopResult.overallTier,
-      mobileResult.overallTier
+      mobileResult.overallScore
     );
     const findings = generateAuditFindings(url, desktopResult, mobileResult);
 
     return {
       desktop: desktopResult,
       findings,
+      frameTiming: combineFrameTiming(
+        desktopResult.frameTiming,
+        mobileResult.frameTiming
+      ),
       mobile: mobileResult,
       overallScore: synthesized.overallScore,
       overallTier: synthesized.overallTier,

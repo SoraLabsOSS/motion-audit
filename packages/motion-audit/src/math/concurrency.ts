@@ -118,3 +118,33 @@ export const computeEffectiveConcurrency = (
     p75Concurrent,
   };
 };
+
+/** Concurrent animations that still fit a frame's task budget without contention. */
+export const CONCURRENCY_FREE_LOAD = 4;
+
+/** Saturation ceiling for concurrent animation contention on the main thread. */
+export const MAX_CONCURRENCY_PENALTY = 20;
+
+/**
+ * Penalty for main-thread contention from overlapping animations.
+ *
+ * Sustained queue density (p75) is what actually delays frames: it measures how
+ * much work sits on the task queue across most frames. A peak burst that clears
+ * between frames costs less than the same peak held continuously, so the peak
+ * only scales the sustained load rather than dominating it.
+ */
+export const calculateConcurrencyPenalty = (
+  metrics: ConcurrencyMetrics
+): number => {
+  if (metrics.maxConcurrent <= CONCURRENCY_FREE_LOAD) {
+    return 0;
+  }
+  const load = 0.7 * metrics.p75Concurrent + 0.3 * metrics.maxConcurrent;
+  if (load <= CONCURRENCY_FREE_LOAD) {
+    return 0;
+  }
+  return Math.min(
+    MAX_CONCURRENCY_PENALTY,
+    Math.round((load - CONCURRENCY_FREE_LOAD) * 1.5)
+  );
+};

@@ -3,6 +3,10 @@ import { test, describe } from "node:test";
 
 import { generateAuditFindings } from "../../src/diagnostics/findings.js";
 import {
+  combineFrameTiming,
+  evaluateMeasuredFrameTiming,
+} from "../../src/math/frame-timing.js";
+import {
   synthesizeOverallAudit,
   computeViewportScore,
   tierFromScore,
@@ -10,10 +14,19 @@ import {
 } from "../../src/math/scoring-engine.js";
 import type { ViewportAuditResult } from "../../src/types.js";
 
-const createMockViewport = (overallScore: number): ViewportAuditResult => ({
+const createMockViewport = (
+  overallScore: number,
+  blockingMs = 0
+): ViewportAuditResult => ({
   animations: [],
   animationsScore: overallScore,
   animationsTier: tierFromScore(overallScore),
+  frameTiming: evaluateMeasuredFrameTiming({
+    supported: true,
+    entryCount: blockingMs > 0 ? 2 : 0,
+    maxDurationMs: 50 + blockingMs,
+    totalBlockingDurationMs: blockingMs,
+  }),
   gpuScore: overallScore,
   gpuTier: tierFromScore(overallScore),
   layerCount: 8,
@@ -44,13 +57,11 @@ describe("Audit Contract & Report Synthesis", () => {
 
     const synthesized = synthesizeOverallAudit(
       desktop.overallScore,
-      mobile.overallScore,
-      desktop.overallTier,
-      mobile.overallTier
+      mobile.overallScore
     );
 
     assert.equal(synthesized.overallScore, 80);
-    assert.equal(synthesized.overallTier, "A");
+    assert.equal(synthesized.overallTier, "S");
   });
 
   test("averageTier rounds and handles boundary cases", () => {
@@ -85,5 +96,30 @@ describe("Audit Contract & Report Synthesis", () => {
     );
 
     assert.equal(findings.length, 0);
+  });
+});
+
+describe("Measured frame timing as the primary report result", () => {
+  test("is independent of the model score", () => {
+    // A page can carry a healthy model grade while measurably blocking frames,
+    // because the model infers from static attributes and cannot see frame cost.
+    const modelLooksGreat = createMockViewport(95);
+    const modelLooksGreatBlocked = createMockViewport(95, 260);
+
+    expect(modelLooksGreat.frameTiming?.verdict).toBe("clean");
+    expect(modelLooksGreatBlocked.frameTiming?.verdict).toBe("poor");
+    // Same model score, opposite measured reality.
+    expect(modelLooksGreatBlocked.overallScore).toBe(
+      modelLooksGreat.overallScore
+    );
+  });
+
+  test("report-level timing takes the worst viewport", () => {
+    const combined = combineFrameTiming(
+      createMockViewport(90, 0).frameTiming,
+      createMockViewport(90, 180).frameTiming
+    );
+    expect(combined.verdict).toBe("degraded");
+    expect(combined.totalBlockingMs).toBe(180);
   });
 });

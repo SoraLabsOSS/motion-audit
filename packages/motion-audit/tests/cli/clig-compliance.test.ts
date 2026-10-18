@@ -2,6 +2,8 @@ import { describe, it, expect } from "bun:test";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
+import packageJson from "../../package.json" with { type: "json" };
+
 const BIN_PATH = path.resolve(import.meta.dir, "../../bin/motion-audit.js");
 const RUNTIME_BIN = process.platform === "win32" ? process.execPath : "node";
 
@@ -11,6 +13,18 @@ describe("clig.dev Standards Compliance Verification", () => {
     expect(res.status).toBe(2);
     expect(res.stderr).toContain("Target URL is required");
     expect(res.stdout).toContain("Usage:");
+  });
+
+  it("exits with code 2 when an invalid threshold is provided", () => {
+    const res = spawnSync(
+      RUNTIME_BIN,
+      [BIN_PATH, "https://example.com", "--threshold", "Z"],
+      {
+        encoding: "utf-8",
+      }
+    );
+    expect(res.status).toBe(2);
+    expect(res.stderr).toContain("Invalid threshold 'Z'");
   });
 
   it("exits with code 2 when an invalid URL is provided", () => {
@@ -42,13 +56,13 @@ describe("clig.dev Standards Compliance Verification", () => {
       encoding: "utf-8",
     });
     expect(resV.status).toBe(0);
-    expect(resV.stdout.trim()).toBe("0.1.3");
+    expect(resV.stdout.trim()).toBe(packageJson.version);
 
     const resVer = spawnSync(RUNTIME_BIN, [BIN_PATH, "--version"], {
       encoding: "utf-8",
     });
     expect(resVer.status).toBe(0);
-    expect(resVer.stdout.trim()).toBe("0.1.3");
+    expect(resVer.stdout.trim()).toBe(packageJson.version);
   });
 
   it("maintains strict stream isolation with --json (stdout is 100% valid JSON, stderr has 0 bytes)", () => {

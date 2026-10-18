@@ -87,6 +87,8 @@ For container environments without a usable sandbox, set:
 MOTION_AUDIT_NO_SANDBOX=1
 ```
 
+> **Note:** Audited pages run instrumented (via style proxies and layout getter interception) during telemetry collection to measure layout thrashing and animation performance.
+
 ## Programmatic API
 
 The package also exports the audit runner, browser viewport constants, report types, scoring helpers, and remediation prompt generators:

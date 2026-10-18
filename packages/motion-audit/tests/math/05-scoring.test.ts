@@ -91,11 +91,11 @@ test("Scoring Math: 4-Pillar Viewport Weighted Aggregation & Pipeline Bottleneck
 });
 
 test("Scoring Math: Overall Audit Synthesis (Desktop + Mobile)", () => {
-  const synthesis = synthesizeOverallAudit(90, 80, "S", "S");
+  const synthesis = synthesizeOverallAudit(90, 80);
   assert.equal(synthesis.overallScore, 85);
   assert.equal(synthesis.overallTier, "S");
 
-  const mixedSynthesis = synthesizeOverallAudit(85, 55, "S", "B");
+  const mixedSynthesis = synthesizeOverallAudit(85, 55);
   assert.equal(mixedSynthesis.overallScore, 70);
   assert.equal(mixedSynthesis.overallTier, "A");
 });

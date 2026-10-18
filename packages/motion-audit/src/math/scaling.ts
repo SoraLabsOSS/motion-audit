@@ -62,6 +62,32 @@ const PAINT_EXACT_PROPERTIES = new Set<string>([
 ]);
 
 /**
+ * Chromium composites transform-backed properties (transform, translate, rotate,
+ * scale, opacity) unconditionally. The remaining compositor candidates only get
+ * their own layer when the element qualifies, so they must be promotion-checked
+ * before their cost can be treated as zero.
+ */
+export const CONDITIONALLY_COMPOSITABLE_PROPERTIES = new Set<string>([
+  "filter",
+  "backdrop-filter",
+  "clip-path",
+  "offset-path",
+  "offset-distance",
+  "offset-rotate",
+  "perspective",
+  "perspective-origin",
+]);
+
+export const isConditionallyCompositable = (property: string): boolean => {
+  if (!property) {
+    return false;
+  }
+  return CONDITIONALLY_COMPOSITABLE_PROPERTIES.has(
+    normalizeCssProperty(property)
+  );
+};
+
+/**
  * Heuristic classification for the scoring model; it is not a browser trace.
  */
 const isPaintPipelineProperty = (prop: string): boolean => {
@@ -103,6 +129,13 @@ export type PipelineStage =
   | "custom-property"
   | "paint"
   | "layout";
+
+/**
+ * Main-thread cost charged to a conditionally compositable property running on an
+ * element that never reached the compositor. Equal to PAINT because degrading to
+ * a non-composited layer *is* a per-frame paint invalidation.
+ */
+export const COMPOSITOR_FALLBACK_COST = PIPELINE_COSTS.PAINT;
 
 export const classifyPropertyStage = (property: string): PipelineStage => {
   if (!property) {
@@ -149,6 +182,31 @@ export const getMaxPropertyCost = (properties: string[]): number => {
   return Math.max(...properties.map(classifyPropertyCost));
 };
 
+/**
+ * Cost of a single animation, corrected for whether the element actually reached
+ * the compositor.
+ *
+ * Without a compositor layer, any change to a visual property re-runs style and
+ * paint on the main thread every frame. Compositor-backed properties
+ * (transform, opacity) are promoted by Chromium regardless and stay free, but a
+ * conditionally compositable property on an unpromoted element silently degrades
+ * to a per-frame main-thread paint. An absent promotion reading is treated as
+ * "not measured" rather than "not promoted", so it is never penalised.
+ */
+export const resolveEffectivePropertyCost = (
+  properties: string[],
+  isPromoted?: boolean
+): number => {
+  const cost = getMaxPropertyCost(properties);
+  if (cost > PIPELINE_COSTS.COMPOSITOR || isPromoted !== false) {
+    return cost;
+  }
+  const needsPromotionCheck = (properties ?? []).some(
+    isConditionallyCompositable
+  );
+  return needsPromotionCheck ? Math.max(cost, COMPOSITOR_FALLBACK_COST) : cost;
+};
+
 // 10% viewport surface represents a typical interactive component/card
 export const BASELINE_PAINT_AREA_RATIO = 0.1;
 
@@ -193,21 +251,65 @@ export const calculateAnimationDurationMultiplier = (
 };
 
 /**
- * Evaluates scroll listener overhead based on main-thread dispatch contention.
- * Scales logarithmically with listener volume to model task queue pressure.
- * In Chromium, passive listeners avoid compositor thread blocking; raw count only adds task queue burden.
+ * Ceiling for scroll-phase main-thread dispatch contention, shared by listener
+ * volume and scroll-driven animation load. In Chromium, passive listeners avoid
+ * compositor thread blocking, so raw count only adds task queue burden.
  */
 export const MAX_SCROLL_CONTENTION_PENALTY = 30;
 
-export const calculateScrollListenerPenalty = (
-  listenerCount: number
-): number => {
-  if (listenerCount <= 0) {
+/**
+ * Shared dispatch-contention curve. Event-loop queue pressure saturates: each
+ * additional unit of scroll-phase work adds less marginal delay than the last.
+ * Shared by listener volume and accumulated scroll-driven pipeline cost so both
+ * are scaled against the same ceiling. The curve itself is an unvalidated
+ * operational assumption, not a measured main-thread latency model.
+ */
+const contentionPenalty = (workUnits: number): number => {
+  if (workUnits <= 0) {
     return 0;
   }
-  // Natural saturation curve based on event loop dispatch queue pressure
-  const penalty = Math.round(7 * Math.log2(1 + listenerCount));
-  return Math.min(penalty, MAX_SCROLL_CONTENTION_PENALTY);
+  return Math.min(
+    Math.round(7 * Math.log2(1 + workUnits)),
+    MAX_SCROLL_CONTENTION_PENALTY
+  );
+};
+
+export const calculateScrollListenerPenalty = (listenerCount: number): number =>
+  contentionPenalty(listenerCount);
+
+export interface ScrollDrivenAnimationMetrics {
+  paintArea?: number;
+  properties: string[];
+}
+
+/**
+ * Penalty for animation load driven by the scroll phase.
+ *
+ * A scroll()- or view()-driven animation has no declared duration, so its effect
+ * is re-sampled on every scroll frame for the whole scroll session instead of
+ * once per run. Compositor-only properties are sampled off-thread (cost 0);
+ * paint, custom-property and layout effects re-run their invalidation stage on
+ * the main thread once per scroll frame. The per-animation cost is therefore the
+ * same PIPELINE_COSTS unit the animations pillar uses, with no duration discount.
+ *
+ * Accumulated cost is normalised by PAINT before entering the contention curve:
+ * one full-viewport paint animation is one unit of scroll-phase work, matching the
+ * unit a scroll listener counts as. Feeding raw cost points into a curve
+ * calibrated for listener counts saturates at the first paint animation and loses
+ * all ability to distinguish a light page from a heavy one.
+ */
+export const calculateScrollDrivenAnimationPenalty = (
+  animations: ScrollDrivenAnimationMetrics[],
+  viewportArea?: number
+): number => {
+  let workUnits = 0;
+  for (const animation of animations ?? []) {
+    workUnits +=
+      (getMaxPropertyCost(animation.properties ?? []) *
+        calculatePaintAreaMultiplier(animation.paintArea, viewportArea)) /
+      PIPELINE_COSTS.PAINT;
+  }
+  return contentionPenalty(workUnits);
 };
 
 export interface ScrollBehaviorMetrics {
@@ -215,6 +317,7 @@ export interface ScrollBehaviorMetrics {
   nonPassiveCount: number;
   unoptimizedCount: number;
   hasLayoutOnScroll: boolean;
+  scrollDrivenAnimationPenalty?: number;
 }
 
 export const calculateScrollBehaviorPenalty = (
@@ -227,9 +330,14 @@ export const calculateScrollBehaviorPenalty = (
     Math.max(0, metrics.unoptimizedCount) * 3
   );
   const layoutPenalty = metrics.hasLayoutOnScroll ? 20 : 0;
+  const animationLoadPenalty = metrics.scrollDrivenAnimationPenalty ?? 0;
   return Math.min(
     60,
-    listenerPenalty + passivePenalty + schedulingPenalty + layoutPenalty
+    listenerPenalty +
+      passivePenalty +
+      schedulingPenalty +
+      layoutPenalty +
+      animationLoadPenalty
   );
 };
 

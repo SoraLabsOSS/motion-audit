@@ -56,6 +56,29 @@ export const calculateLongestReflowBurst = (frames: number[]): number => {
 // Canonical export
 export const computeMaxConsecutiveRun = calculateLongestReflowBurst;
 
+/**
+ * Layout thrashing is a sustained read/write cycle; a single isolated forced
+ * reflow is a bounded one-shot cost, not a thrash. Isolation is charged at a
+ * discount rather than waived, so cost ranking (layout > style, root > leaf)
+ * still holds and an intra-frame N+1 query loop in a single frame is not lost.
+ */
+export const ISOLATED_REFLOW_DISCOUNT = 0.5;
+
+/** Consecutive-frame burst length at which forced reflows count as sustained. */
+export const MIN_CONSECUTIVE_REFLOW_FRAMES = 3;
+
+const computeConsecutiveMultiplier = (maxConsecutive: number): number => {
+  if (maxConsecutive >= 8) {
+    return 2.5;
+  }
+  if (maxConsecutive >= MIN_CONSECUTIVE_REFLOW_FRAMES) {
+    return (
+      1 + Math.min(1.5, (maxConsecutive / MIN_CONSECUTIVE_REFLOW_FRAMES) * 0.5)
+    );
+  }
+  return ISOLATED_REFLOW_DISCOUNT;
+};
+
 const isRootSelector = (s?: string): boolean =>
   Boolean(
     s && /^(?:html|body|document|window|#root|#__next)(?:\s+|>|$)/iu.test(s)
@@ -165,8 +188,7 @@ export const analyzeLayoutThrashing = (
     runtimePenalty += computeFrameCost(frameViolations);
   }
 
-  const consecutiveMultiplier =
-    maxConsecutive >= 8 ? 2.5 : 1 + Math.min(1.5, (maxConsecutive / 3) * 0.5);
+  const consecutiveMultiplier = computeConsecutiveMultiplier(maxConsecutive);
   const totalPenalty = Math.min(
     100,
     Math.round(runtimePenalty * consecutiveMultiplier + initPenalty)

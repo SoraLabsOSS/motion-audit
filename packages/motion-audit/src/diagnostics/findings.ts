@@ -1,3 +1,4 @@
+import { classifyPropertyStage } from "../math/scaling.js";
 import type { AuditFinding, ViewportAuditResult } from "../types.js";
 import {
   generateIncidentRemediationPrompt,
@@ -25,7 +26,11 @@ const collectGpuFindings = (
   const findings: AuditFinding[] = [];
 
   // 128MB (Tier B threshold)
-  if (desktop.gpuTier !== "S" && desktop.vramBytes > 128 * 1024 * 1024) {
+  if (
+    desktop.measured !== false &&
+    desktop.gpuTier !== "S" &&
+    desktop.vramBytes > 128 * 1024 * 1024
+  ) {
     const mb = Math.round(desktop.vramBytes / (1024 * 1024));
     findings.push({
       category: "gpu",
@@ -45,7 +50,11 @@ const collectGpuFindings = (
   }
 
   // 64MB (Tier B threshold)
-  if (mobile.gpuTier !== "S" && mobile.vramBytes > 64 * 1024 * 1024) {
+  if (
+    mobile.measured !== false &&
+    mobile.gpuTier !== "S" &&
+    mobile.vramBytes > 64 * 1024 * 1024
+  ) {
     const mb = Math.round(mobile.vramBytes / (1024 * 1024));
     findings.push({
       category: "gpu",
@@ -72,7 +81,10 @@ const collectLayoutAnimationFindings = (
   desktop: ViewportAuditResult,
   mobile: ViewportAuditResult
 ): AuditFinding[] => {
-  const allAnims = [...desktop.animations, ...mobile.animations];
+  const allAnims = [
+    ...(desktop.measured === false ? [] : desktop.animations),
+    ...(mobile.measured === false ? [] : mobile.animations),
+  ];
   const layoutAnims = allAnims.filter((a) =>
     a.properties.some((p) => LAYOUT_PROPERTIES.has(p))
   );
@@ -125,18 +137,26 @@ const collectScrollFindings = (
   mobile: ViewportAuditResult
 ): AuditFinding[] => {
   const nonPassiveDesktop =
-    desktop.scroll.listenerCount > 0 && !desktop.scroll.usesPassive;
+    desktop.measured !== false &&
+    desktop.scroll.listenerCount > 0 &&
+    !desktop.scroll.usesPassive;
   const nonPassiveMobile =
-    mobile.scroll.listenerCount > 0 && !mobile.scroll.usesPassive;
+    mobile.measured !== false &&
+    mobile.scroll.listenerCount > 0 &&
+    !mobile.scroll.usesPassive;
   const hasLayoutOnScroll =
-    desktop.scroll.hasLayoutOnScroll || mobile.scroll.hasLayoutOnScroll;
+    (desktop.measured !== false && desktop.scroll.hasLayoutOnScroll) ||
+    (mobile.measured !== false && mobile.scroll.hasLayoutOnScroll);
 
   if (!nonPassiveDesktop && !nonPassiveMobile && !hasLayoutOnScroll) {
     return [];
   }
 
   const affected = [
-    ...new Set([...desktop.scroll.selectors, ...mobile.scroll.selectors]),
+    ...new Set([
+      ...(desktop.measured === false ? [] : desktop.scroll.selectors),
+      ...(mobile.measured === false ? [] : mobile.scroll.selectors),
+    ]),
   ];
 
   return [
@@ -176,7 +196,19 @@ const collectThrashingAndOffscreenFindings = (
 ): AuditFinding[] => {
   const findings: AuditFinding[] = [];
 
-  if (desktop.thrashingScore < 80 || mobile.thrashingScore < 80) {
+  const deskThrashing =
+    desktop.measured !== false && desktop.thrashingScore < 80;
+  const mobThrashing = mobile.measured !== false && mobile.thrashingScore < 80;
+
+  if (deskThrashing || mobThrashing) {
+    let thrashingViewport: "desktop" | "mobile" = "mobile";
+    if (deskThrashing && mobThrashing) {
+      thrashingViewport =
+        desktop.thrashingScore < mobile.thrashingScore ? "desktop" : "mobile";
+    } else if (deskThrashing) {
+      thrashingViewport = "desktop";
+    }
+
     findings.push({
       category: "thrashing",
       description:
@@ -191,12 +223,14 @@ const collectThrashingAndOffscreenFindings = (
         "Batch all DOM reads first, then execute DOM writes (e.g., FastDOM or `requestAnimationFrame`).",
       severity: "critical",
       title: "Consecutive DOM Layout Thrashing Detected",
-      viewport:
-        desktop.thrashingScore < mobile.thrashingScore ? "desktop" : "mobile",
+      viewport: thrashingViewport,
     });
   }
 
-  const allAnims = [...desktop.animations, ...mobile.animations];
+  const allAnims = [
+    ...(desktop.measured === false ? [] : desktop.animations),
+    ...(mobile.measured === false ? [] : mobile.animations),
+  ];
   const offscreenMutations = allAnims.filter(
     (a) =>
       a.isOffscreen &&
@@ -232,13 +266,144 @@ const collectThrashingAndOffscreenFindings = (
   return findings;
 };
 
+const collectOverlapFindings = (
+  url: string,
+  desktop: ViewportAuditResult,
+  mobile: ViewportAuditResult
+): AuditFinding[] => {
+  const findings: AuditFinding[] = [];
+  const checkViewport = (
+    vp: ViewportAuditResult,
+    label: "desktop" | "mobile"
+  ) => {
+    const overlapLayers = vp.layers.filter((l) => l.isOverlapPromoted);
+    if (overlapLayers.length >= 3) {
+      const selectors = overlapLayers
+        .map((l) => l.selector)
+        .filter((s): s is string => Boolean(s && !s.startsWith("<")));
+      findings.push({
+        category: "overlap",
+        description: `${overlapLayers.length} elements are compositor layers only because they overlap other composited content. The browser promotes overlapping elements to separate GPU layers to preserve correct paint order, which increases memory usage.`,
+        fixPrompt: generateIncidentRemediationPrompt(
+          url,
+          `${overlapLayers.length} layers are overlap-promoted on ${label}.`,
+          "Ensure animated elements don't unnecessarily overlap other composited content. Use `contain: layout` or adjust stacking contexts.",
+          selectors
+        ),
+        id: `overlap-promoted-${label}`,
+        recommendation:
+          "Audit affected elements for reasons they might be promoted to layers unnecessarily. Ensure animated elements do not overlap large static backgrounds.",
+        selectors,
+        severity: overlapLayers.length > 8 ? "high" : "low",
+        title: "Overlap-Promoted Layers",
+        viewport: label,
+      });
+    }
+  };
+
+  if (desktop.measured !== false) {
+    checkViewport(desktop, "desktop");
+  }
+  if (mobile.measured !== false) {
+    checkViewport(mobile, "mobile");
+  }
+  return findings;
+};
+
+const collectWillChangeFindings = (
+  url: string,
+  desktop: ViewportAuditResult,
+  mobile: ViewportAuditResult
+): AuditFinding[] => {
+  const findings: AuditFinding[] = [];
+  const allAnims = [
+    ...(desktop.measured === false ? [] : desktop.animations),
+    ...(mobile.measured === false ? [] : mobile.animations),
+  ];
+  const missingWcAnims = allAnims.filter(
+    (a) =>
+      a.notes?.includes("MISSING WILL-CHANGE") &&
+      // Only compositor properties benefit from a promotion hint; a
+      // width/height animation needs transform, not will-change.
+      a.properties.some((p) => classifyPropertyStage(p) === "compositor")
+  );
+
+  if (missingWcAnims.length > 0) {
+    const selectors = [...new Set(missingWcAnims.map((a) => a.selector))];
+    findings.push({
+      category: "will-change",
+      description: `${missingWcAnims.length} animations run transform/opacity without a will-change or 3D transform hint. Chrome usually promotes these on its own, so treat this as informational and only act when a performance profile shows the promotion is missing.`,
+      fixPrompt: generateIncidentRemediationPrompt(
+        url,
+        `${missingWcAnims.length} animations are missing layer promotion hints on ${selectors.join(", ")}.`,
+        "Optimize compositor layer lifecycle; promote during animation and remove when idle.",
+        selectors
+      ),
+      id: "anim-missing-will-change",
+      recommendation:
+        "Promote elements during active animation and release when idle to avoid unnecessary memory overhead.",
+      selectors,
+      severity: "low",
+      title: "Missing `will-change` on Compositor Animation",
+      viewport: "both",
+    });
+  }
+
+  return findings;
+};
+
+const collectExcessScrollListenerFindings = (
+  url: string,
+  desktop: ViewportAuditResult,
+  mobile: ViewportAuditResult
+): AuditFinding[] => {
+  const findings: AuditFinding[] = [];
+  const checkVp = (vp: ViewportAuditResult, label: "desktop" | "mobile") => {
+    const totalAnims =
+      (vp.scroll.scrollLinkedCount || 0) +
+      (vp.scroll.scrollTriggeredCount || 0);
+    if (
+      vp.scroll.listenerCount >= 4 &&
+      totalAnims > 0 &&
+      vp.scroll.listenerCount > totalAnims * 2
+    ) {
+      findings.push({
+        category: "scroll",
+        description: `${vp.scroll.listenerCount} scroll listeners detected for ${totalAnims} scroll animations. Each listener adds overhead to every scroll event.`,
+        fixPrompt: generateIncidentRemediationPrompt(
+          url,
+          `${vp.scroll.listenerCount} scroll listeners active for only ${totalAnims} scroll animations.`,
+          "Consolidate multiple scroll listeners into a single passive listener or migrate to IntersectionObserver."
+        ),
+        id: `scroll-excess-listeners-${label}`,
+        recommendation:
+          "Consolidate multiple scroll listeners into a single shared handler, or replace with `IntersectionObserver`.",
+        severity: "high",
+        title: "Excess Scroll Event Listeners",
+        viewport: label,
+      });
+    }
+  };
+
+  if (desktop.measured !== false) {
+    checkVp(desktop, "desktop");
+  }
+  if (mobile.measured !== false) {
+    checkVp(mobile, "mobile");
+  }
+  return findings;
+};
+
 export const generateAuditFindings = (
   url: string,
   desktop: ViewportAuditResult,
   mobile: ViewportAuditResult
 ): AuditFinding[] => [
   ...collectGpuFindings(url, desktop, mobile),
+  ...collectOverlapFindings(url, desktop, mobile),
   ...collectLayoutAnimationFindings(url, desktop, mobile),
+  ...collectWillChangeFindings(url, desktop, mobile),
   ...collectScrollFindings(url, desktop, mobile),
+  ...collectExcessScrollListenerFindings(url, desktop, mobile),
   ...collectThrashingAndOffscreenFindings(url, desktop, mobile),
 ];

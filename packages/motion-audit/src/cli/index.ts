@@ -13,6 +13,7 @@ import { renderTerminalReport, spinner } from "./ui.js";
 
 const TIER_ORDER: Tier[] = ["S", "A", "B", "C", "D", "F"];
 const require = createRequire(import.meta.url);
+// SAFETY: package.json always defines a version string property
 const packageJson = require("../../package.json") as { version: string };
 
 const meetsThreshold = (actual: Tier, threshold: Tier): boolean =>
@@ -82,9 +83,11 @@ const handleOutputs = (
     const summaryPayload = {
       criticalCount: report.findings.filter((f) => f.severity === "critical")
         .length,
-      desktopScore: report.desktop.overallScore,
+      desktopScore:
+        report.desktop.measured === false ? null : report.desktop.overallScore,
       findingsCount: report.findings.length,
-      mobileScore: report.mobile.overallScore,
+      mobileScore:
+        report.mobile.measured === false ? null : report.mobile.overallScore,
       overallScore: report.overallScore,
       overallTier: report.overallTier,
       timestamp: report.timestamp,
@@ -164,7 +167,7 @@ export const runCli = async (argv: string[]): Promise<void> => {
     }
   };
 
-  const stopProgress = (_msg?: string) => {
+  const stopProgress = () => {
     if (progressSpinner) {
       progressSpinner.stop();
     }
@@ -208,7 +211,7 @@ export const runCli = async (argv: string[]): Promise<void> => {
     handleOutputs(report, opts, isMachineMode);
     process.exit(0);
   } catch (error: unknown) {
-    stopProgress("Audit execution failed.");
+    stopProgress();
     const message = error instanceof Error ? error.message : String(error);
     console.error(pc.red(`\nAudit Error: ${message}\n`));
 

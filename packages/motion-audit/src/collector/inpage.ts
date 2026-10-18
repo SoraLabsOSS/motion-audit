@@ -3,8 +3,6 @@
  * Injected into the browser to capture runtime animations, scroll listeners, and layout thrashing.
  */
 
-import type { AnimationSource } from "../types.js";
-
 export const INPAGE_INIT_SCRIPT = `
 (() => {
   if (window.__MOTION_AUDIT__) return;
@@ -18,6 +16,7 @@ export const INPAGE_INIT_SCRIPT = `
   const scrollPhaseFrames = new Set();
   const scrollLinkedAnimations = new WeakSet();
   const scrollTriggeredCandidates = new WeakSet();
+  const ioTriggeredElements = new WeakSet();
   let scrollEventCount = 0;
   let lastScrollEventFrame = 0;
   let lastWriteTimestamp = 0;
@@ -26,6 +25,9 @@ export const INPAGE_INIT_SCRIPT = `
   let currentFrameIndex = 0;
   let isInsideRaf = false;
   let isScrolling = false;
+  let lastRafTimestamp = -1;
+  let currentFrameRafCount = 0;
+  let maxConcurrentRaf = 0;
 
   if (typeof PerformanceObserver === 'function') {
     try {
@@ -41,6 +43,26 @@ export const INPAGE_INIT_SCRIPT = `
     } catch {}
   }
 
+  // Hook IntersectionObserver for scroll-triggered animation attribution
+  const origIntersectionObserver = window.IntersectionObserver;
+  if (typeof origIntersectionObserver === 'function') {
+    window.IntersectionObserver = function(callback, options) {
+      const wrappedCallback = function(entries, observer) {
+        for (let i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting && entries[i].target) {
+            ioTriggeredElements.add(entries[i].target);
+          }
+        }
+        return callback.call(this, entries, observer);
+      };
+      return new origIntersectionObserver(wrappedCallback, options);
+    };
+    window.IntersectionObserver.prototype = origIntersectionObserver.prototype;
+    Object.keys(origIntersectionObserver).forEach((key) => {
+      window.IntersectionObserver[key] = origIntersectionObserver[key];
+    });
+  }
+
   window.addEventListener('scroll', () => {
     scrollEventCount++;
     lastScrollEventFrame = currentFrameIndex;
@@ -48,24 +70,50 @@ export const INPAGE_INIT_SCRIPT = `
     setTimeout(() => { isScrolling = false; }, 60);
   }, { passive: true, capture: true });
 
-  const origRAF = window.requestAnimationFrame;
+  function sampleWaapiAnimations() {
+      if (typeof document.getAnimations !== 'function') return;
+      let list;
+      try { list = document.getAnimations(); } catch { return; }
+      for (const animation of list) {
+        const timelineName = animation.timeline?.constructor?.name;
+        if (timelineName === 'ScrollTimeline' || timelineName === 'ViewTimeline') {
+          scrollLinkedAnimations.add(animation);
+        } else if (lastScrollEventFrame > 0 && currentFrameIndex - lastScrollEventFrame <= 2) {
+          scrollTriggeredCandidates.add(animation);
+        }
+        const frames = waapiAnimationFrames.get(animation) || new Set();
+        frames.add(currentFrameIndex);
+        waapiAnimationFrames.set(animation, frames);
+      }
+    }
+
+    /**
+     * A CSS/WAAPI animation only exists in document.getAnimations() while it is
+     * running. Patching requestAnimationFrame alone is not enough: a page driven
+     * purely by CSS never calls rAF, so its animations would never be observed.
+     * A low-frequency timer poll catches short-lived animations without forcing
+     * frames or polluting the rAF concurrency accounting.
+     */
+    setInterval(sampleWaapiAnimations, 200);
+
+    const origRAF = window.requestAnimationFrame;
   window.requestAnimationFrame = function(cb) {
     return origRAF.call(window, function(timestamp) {
+      if (timestamp !== lastRafTimestamp) {
+        if (currentFrameRafCount > maxConcurrentRaf) {
+          maxConcurrentRaf = currentFrameRafCount;
+        }
+        currentFrameRafCount = 0;
+        lastRafTimestamp = timestamp;
+      }
+      currentFrameRafCount++;
+
       isInsideRaf = true;
       currentFrameIndex++;
       if (isScrolling) scrollPhaseFrames.add(currentFrameIndex);
+      sampleWaapiAnimations();
       if (typeof document.getAnimations === 'function') {
-        for (const animation of document.getAnimations()) {
-          const timelineName = animation.timeline?.constructor?.name;
-          if (timelineName === 'ScrollTimeline' || timelineName === 'ViewTimeline') {
-            scrollLinkedAnimations.add(animation);
-          } else if (lastScrollEventFrame > 0 && currentFrameIndex - lastScrollEventFrame <= 2) {
-            scrollTriggeredCandidates.add(animation);
-          }
-          const frames = waapiAnimationFrames.get(animation) || new Set();
-          frames.add(currentFrameIndex);
-          waapiAnimationFrames.set(animation, frames);
-        }
+        sampleWaapiAnimations();
       }
       try {
         cb(timestamp);
@@ -75,33 +123,48 @@ export const INPAGE_INIT_SCRIPT = `
     });
   };
 
+  function describeElement(el) {
+    if (!el || !el.tagName) return '';
+    const tag = el.tagName.toLowerCase();
+    if (el.id) return tag + '#' + el.id;
+    let cls = null;
+    if (el.className && typeof el.className === 'string') cls = el.className;
+    else if (typeof el.getAttribute === 'function') cls = el.getAttribute('class');
+    if (cls) {
+      const classList = cls.trim().split(/\\s+/).filter(Boolean);
+      if (classList.length > 0) return tag + '.' + classList.join('.');
+    }
+    const parent = el.parentElement;
+    if (parent) {
+      const kids = parent.children;
+      for (let i = 0; i < kids.length; i++) {
+        if (kids[i] === el) return tag + ':nth-child(' + (i + 1) + ')';
+      }
+    }
+    return tag;
+  }
+
   function getSelector(el) {
     if (!el || el === window) return 'window';
-    if (el === document || el.nodeType === 9) return 'document';
+    if (el === document || el.nodeType === 9) return '#document';
     if (el === document.documentElement) return 'html';
     if (el === document.body) return 'body';
     if (!(el instanceof Element)) return el.nodeName ? el.nodeName.toLowerCase() : 'window';
-    if (el.id) return '#' + el.id;
 
     const parts = [];
-    let curr = el;
-    while (curr && curr !== document.body && curr !== document.documentElement && parts.length < 3) {
-      let seg = curr.tagName.toLowerCase();
-      if (curr.id) {
-        parts.unshift('#' + curr.id);
-        break;
-      }
-      if (curr.classList && curr.classList.length > 0) {
-        seg += '.' + curr.classList[0];
-      } else if (curr.parentElement) {
-        const idx = Array.prototype.indexOf.call(curr.parentElement.children, curr) + 1;
-        seg += ':nth-child(' + idx + ')';
-      }
-      parts.unshift(seg);
-      curr = curr.parentElement;
+    let current = el;
+    let depth = 0;
+    while (current && current.nodeType === 1 && depth < 6) {
+      const part = describeElement(current);
+      if (!part) break;
+      parts.unshift(part);
+      if (current.id || current === document.body || current === document.documentElement) break;
+      current = current.parentElement;
+      depth++;
     }
     return parts.join(' > ') || el.tagName.toLowerCase();
   }
+
 
   // 1. Intercept scroll event listeners
   const originalAddEventListener = EventTarget.prototype.addEventListener;
@@ -115,7 +178,7 @@ export const INPAGE_INIT_SCRIPT = `
       scrollListeners.push({
         selector: getSelector(this),
         passive: isPassive,
-        hasRafOrDebounce: /\brequestAnimationFrame\b|\b(?:debounce|throttle)\b/.test(listenerSource)
+        hasRafOrDebounce: /\\brequestAnimationFrame\\b|\\b(?:debounce|throttle)\\b/.test(listenerSource)
       });
     }
     return originalAddEventListener.call(this, type, listener, options);
@@ -129,7 +192,6 @@ export const INPAGE_INIT_SCRIPT = `
     lastWriteTimestamp = performance.now();
     lastWriteProperty = prop || 'style';
     lastWriteSelector = el ? getSelector(el) : '';
-    // Chromium cc: compositor-only mutations do not dirty the layout tree
     const p = String(prop || '').toLowerCase();
     if (!/^(transform|translate|rotate|scale|opacity|filter|will-change)/.test(p)) {
       isDomDirty = true;
@@ -153,30 +215,132 @@ export const INPAGE_INIT_SCRIPT = `
     return originalSetAttribute.call(this, name, value);
   };
 
-  // Auto-hook CSS property setters on CSSStyleDeclaration prototype
-  try {
-    const proto = CSSStyleDeclaration.prototype;
-    const descriptors = Object.getOwnPropertyDescriptors(proto);
-    for (const prop in descriptors) {
-      const desc = descriptors[prop];
-      if (desc && desc.set && typeof prop === 'string' && !prop.startsWith('_') && prop !== 'parentRule') {
-        const origSet = desc.set;
-        Object.defineProperty(proto, prop, {
-          set(val) {
-            try {
-              if (this[prop] !== val) {
-                markWrite(prop, null);
-              }
-            } catch {
-              markWrite(prop, null);
-            }
-            return origSet.call(this, val);
-          },
-          get: desc.get,
-          configurable: true,
-          enumerable: desc.enumerable
-        });
+  // Track style mutations frame-by-frame and detect layer promotion
+  const COMPOSITOR_PROPS = {
+    transform: true, translate: true, rotate: true, scale: true,
+    opacity: true, filter: true, clipPath: true, 'clip-path': true,
+    webkitTransform: true, webkitFilter: true,
+    transformOrigin: true, 'transform-origin': true
+  };
+
+  const LAYOUT_PROPS = {
+    width: true, height: true, top: true, left: true, right: true, bottom: true,
+    margin: true, marginTop: true, marginRight: true, marginBottom: true, marginLeft: true,
+    padding: true, paddingTop: true, paddingRight: true, paddingBottom: true, paddingLeft: true,
+    fontSize: true, lineHeight: true
+  };
+
+  const PAINT_PROPS = {
+    backgroundColor: true, 'background-color': true,
+    color: true, borderColor: true, 'border-color': true,
+    borderRadius: true, 'border-radius': true,
+    boxShadow: true, 'box-shadow': true, outline: true, background: true
+  };
+
+  const proxyCache = new WeakMap();
+  const had3dTransform = new WeakSet();
+  const styleTracking = new WeakMap();
+
+  function is3dTranslate(v) {
+    return typeof v === 'string' && v !== 'none' && v.trim().split(/\\s+/).length >= 3;
+  }
+
+  function trackStyleMutation(el, prop) {
+    if (!el || !prop) return;
+    if (['willChange', 'will-change', 'pointerEvents', 'cursor'].includes(prop)) return;
+
+    let propMap = styleTracking.get(el);
+    if (!propMap) {
+      propMap = new Map();
+      styleTracking.set(el, propMap);
+    }
+    let frames = propMap.get(prop);
+    if (!frames) {
+      frames = [];
+      propMap.set(prop, frames);
+    }
+    if (frames[frames.length - 1] !== currentFrameIndex) {
+      frames.push(currentFrameIndex);
+    }
+
+    let maxConsecutive = 1;
+    let currRun = 1;
+    for (let i = 1; i < frames.length; i++) {
+      if (frames[i] === frames[i - 1] + 1) {
+        currRun++;
+        if (currRun > maxConsecutive) maxConsecutive = currRun;
+      } else {
+        currRun = 1;
       }
+    }
+
+    if (maxConsecutive >= 5 || frames.length >= 5) {
+      const jsEntry = jsAnimatedElements.get(el) || { count: 0, props: new Set(), frames: new Set() };
+      jsEntry.count = Math.max(jsEntry.count, maxConsecutive);
+      jsEntry.props.add(prop);
+      jsEntry.frames.add(currentFrameIndex);
+      jsAnimatedElements.set(el, jsEntry);
+    }
+  }
+
+  function patchStyleProto(proto) {
+    const desc = Object.getOwnPropertyDescriptor(proto, 'style');
+    const getter = desc && desc.get ? desc.get : null;
+    if (!getter) return;
+    Object.defineProperty(proto, 'style', {
+      get() {
+        if (proxyCache.has(this)) return proxyCache.get(this);
+        const realStyle = getter.call(this);
+        const el = this;
+        const proxy = new Proxy(realStyle, {
+          set(target, prop, value) {
+            if (typeof prop === 'string' && target[prop] !== value) {
+              trackStyleMutation(el, prop);
+              markWrite(prop, el);
+              if (prop === 'transform' && typeof value === 'string' &&
+                  (value.includes('translateZ') || value.includes('translate3d') || value.includes('matrix3d'))) {
+                had3dTransform.add(el);
+              }
+              if (prop === 'translate' && is3dTranslate(value)) {
+                had3dTransform.add(el);
+              }
+            }
+            target[prop] = value;
+            return true;
+          },
+          get(target, prop) {
+            const val = target[prop];
+            if (prop === 'setProperty' && typeof val === 'function') {
+              return function(name, newVal) {
+                if (target.getPropertyValue(name) !== String(newVal)) {
+                  trackStyleMutation(el, name);
+                  markWrite(name, el);
+                  if (name === 'transform' && typeof newVal === 'string' &&
+                      (newVal.includes('translateZ') || newVal.includes('translate3d') || newVal.includes('matrix3d'))) {
+                    had3dTransform.add(el);
+                  }
+                  if (name === 'translate' && is3dTranslate(newVal)) {
+                    had3dTransform.add(el);
+                  }
+                }
+                return val.apply(target, arguments);
+              };
+            }
+            if (typeof val === 'function') return val.bind(target);
+            return val;
+          }
+        });
+        proxyCache.set(this, proxy);
+        return proxy;
+      },
+      configurable: true
+    });
+  }
+
+  try {
+    patchStyleProto(HTMLElement.prototype);
+    if (typeof SVGElement !== 'undefined') {
+      patchStyleProto(SVGElement.prototype);
     }
   } catch {}
 
@@ -198,7 +362,6 @@ export const INPAGE_INIT_SCRIPT = `
         duringScroll: isScrolling
       });
       if (isScrolling && readType === 'layout') hasLayoutOnScroll = true;
-      // In Chromium, querying layout immediately forces style/layout tree update, making DOM clean again
       isDomDirty = false;
     }
   }
@@ -233,15 +396,18 @@ export const INPAGE_INIT_SCRIPT = `
     return origGetClientRects.call(this);
   };
 
-  if (typeof window.getComputedStyle === 'function') {
-    const origGetComputedStyle = window.getComputedStyle;
+  const rawGetComputedStyle =
+    typeof window.getComputedStyle === 'function'
+      ? window.getComputedStyle
+      : null;
+  if (rawGetComputedStyle) {
     window.getComputedStyle = function(elt, pseudoElt) {
       recordRead('getComputedStyle', elt, 'style');
-      return origGetComputedStyle.call(this, elt, pseudoElt);
+      return rawGetComputedStyle.call(this, elt, pseudoElt);
     };
   }
 
-  // 4. Clean-room JS Animation detection via native W3C MutationObserver
+  // 4. JS Animation detection via native W3C MutationObserver
   if (typeof MutationObserver === 'function') {
     const SVG_ATTRS = ['d', 'points', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'width', 'height', 'stroke-dashoffset', 'stroke-dasharray', 'viewBox', 'transform'];
     const observer = new MutationObserver((mutations) => {
@@ -286,9 +452,57 @@ export const INPAGE_INIT_SCRIPT = `
     else document.addEventListener('DOMContentLoaded', startObserve);
   }
 
+  function gradeElementPromotion(el, properties) {
+    let hasWillChange = false;
+    let has3dTransform = had3dTransform.has(el);
+    try {
+      const computed = window.getComputedStyle(el);
+      const wc = computed?.willChange;
+      if (wc && wc !== 'auto') {
+        const wcProps = wc.split(',').map((p) => p.trim().toLowerCase());
+        for (const p of wcProps) {
+          if (COMPOSITOR_PROPS[p] || p === 'transform' || p === 'opacity') {
+            hasWillChange = true;
+            break;
+          }
+        }
+      }
+      if (!has3dTransform && computed?.transform && computed.transform !== 'none') {
+        has3dTransform = computed.transform.includes('matrix3d');
+      }
+    } catch {}
+
+    const isPromoted = hasWillChange || has3dTransform;
+    const hasCompositorProps = properties.some((p) => COMPOSITOR_PROPS[p]);
+    const hasLayoutProps = properties.some((p) => LAYOUT_PROPS[p]);
+    const hasPaintProps = properties.some((p) => PAINT_PROPS[p]);
+
+    let tier = 'S';
+    const notes = [];
+
+    if (hasLayoutProps) {
+      tier = 'D';
+    } else if (hasPaintProps) {
+      tier = 'C';
+    } else if (hasCompositorProps) {
+      if (isPromoted) {
+        tier = 'A';
+      } else {
+        // Informational only: Chrome promotes animating transform/opacity itself.
+        notes.push('MISSING WILL-CHANGE');
+      }
+    }
+
+    return {
+      tier,
+      hasWillChange,
+      isPromoted,
+      notes
+    };
+  }
+
   window.__MOTION_AUDIT__ = {
     getScrollData() {
-      // Normal scroll on window/document without layout mutation doesn't block compositor thread
       const activeListeners = scrollListeners.filter((l) => {
         const isRoot = ['window', 'document', 'html', 'body'].includes(l.selector);
         return !(isRoot && !hasLayoutOnScroll && l.passive);
@@ -300,6 +514,22 @@ export const INPAGE_INIT_SCRIPT = `
     },
     getThrashingData() {
       return thrashingLog;
+    },
+    getThrashingBreakdown() {
+      let mountCount = 0;
+      let frameCount = 0;
+      for (let i = 0; i < thrashingLog.length; i++) {
+        if (thrashingLog[i].phase === 'init' || thrashingLog[i].frameIndex === 0) {
+          mountCount++;
+        } else {
+          frameCount++;
+        }
+      }
+      return {
+        mountCount,
+        frameCount,
+        maxConcurrentRaf: Math.max(1, maxConcurrentRaf)
+      };
     },
     getLongAnimationFrameData() {
       return {
@@ -332,6 +562,15 @@ export const INPAGE_INIT_SCRIPT = `
       }
       return results;
     },
+    getSelector(el) {
+      return getSelector(el);
+    },
+    getUntrackedRect(el) {
+      return origGetBoundingClientRect.call(el);
+    },
+    getUntrackedStyle(el, pseudoElt) {
+      return rawGetComputedStyle ? rawGetComputedStyle.call(window, el, pseudoElt) : null;
+    },
     getScrollPhaseData() {
       let animationSampleCount = 0;
       let scrollLinkedAnimationCount = 0;
@@ -353,13 +592,80 @@ export const INPAGE_INIT_SCRIPT = `
         scrollTriggeredCandidateCount
       };
     },
+    /**
+     * Animations accumulated across the whole session, not just those still
+     * running at sampling time. A finite animation detaches from
+     * document.getAnimations() the moment it finishes, so a single late snapshot
+     * silently misses every short-lived animation on the page.
+     */
+    getAccumulatedWaapiAnimations() {
+      isInternalRead = true;
+      try {
+        const results = [];
+        let idx = 0;
+        for (const animation of waapiAnimationFrames.keys()) {
+          const effect = animation.effect;
+          const target = effect && effect.target ? effect.target : null;
+          if (!target) continue;
+          const props = new Set();
+          try {
+            if (typeof effect.getKeyframes === 'function') {
+              // getKeyframes() keys are the animated properties themselves in
+              // Chromium; the timing fields must be excluded.
+              const skip = { offset: 1, easing: 1, composite: 1, computedOffset: 1 };
+              for (const kf of effect.getKeyframes()) {
+                if (!kf) continue;
+                for (const k of Object.keys(kf)) {
+                  if (!skip[k]) props.add(k);
+                }
+              }
+            }
+          } catch {}
+          if (props.size === 0) continue;
+          const properties = Array.from(props);
+          const timing = typeof effect.getTiming === 'function' ? effect.getTiming() : null;
+          const dur = timing && Number.isFinite(timing.duration) ? Number(timing.duration) : 300;
+          const iterations = timing && Number.isFinite(timing.iterations) ? Number(timing.iterations) : 1;
+          const timelineName = animation.timeline && animation.timeline.constructor ? animation.timeline.constructor.name : '';
+          let rect = { width: 100, height: 100, top: 0, bottom: 100, left: 0, right: 100 };
+          try {
+            if (typeof target.getBoundingClientRect === 'function') {
+              rect = target.getBoundingClientRect();
+            }
+          } catch {}
+          const vpW = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 1000);
+          const vpH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 1000);
+          const buffer = 400;
+          const isOffscreen = rect.bottom <= -buffer || rect.top >= vpH + buffer || rect.right <= -buffer || rect.left >= vpW + buffer;
+          const graded = gradeElementPromotion(target, properties);
+          results.push({
+            id: 'waapi-anim-' + (idx++),
+            selector: getSelector(target),
+            properties,
+            source: animation.id && animation.id.indexOf('css') === 0 ? 'css-animation' : 'waapi',
+            durationMs: dur,
+            iterations,
+            paintArea: Math.max(100, (rect.width || 100) * (rect.height || 100)),
+            isOffscreen,
+            tier: graded.tier,
+            hasWillChange: graded.hasWillChange,
+            isPromoted: graded.isPromoted,
+            notes: graded.notes,
+            kind: timelineName === 'ScrollTimeline' || timelineName === 'ViewTimeline' ? 'scroll-linked' : 'waapi',
+            trigger: undefined
+          });
+        }
+        return results;
+      } finally {
+        isInternalRead = false;
+      }
+    },
     getJsAnimations() {
       isInternalRead = true;
       try {
         const results = [];
         let idx = 0;
         for (const [el, data] of jsAnimatedElements.entries()) {
-          // Require at least 5 frames/updates (prevents 1-2 resize sets from being falsely classified as animations)
           const frameCount = data.frames ? data.frames.size : 0;
           const isSustained = frameCount >= 5 || data.count >= 5;
           if (isSustained) {
@@ -373,15 +679,27 @@ export const INPAGE_INIT_SCRIPT = `
             const vpH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 1000);
             const buffer = 400;
             const isOffscreen = rect.bottom <= -buffer || rect.top >= vpH + buffer || rect.right <= -buffer || rect.left >= vpW + buffer;
+            const properties = Array.from(data.props);
+            const graded = gradeElementPromotion(el, properties);
+            const isTriggeredByScroll = ioTriggeredElements.has(el) || (isScrolling && frameCount > 0);
+
             results.push({
               id: 'js-anim-' + (idx++),
               selector: getSelector(el),
-              properties: Array.from(data.props),
+              properties,
               source: 'js-loop',
               durationMs: 600,
               iterations: Infinity,
               paintArea: Math.max(100, (rect.width || 100) * (rect.height || 100)),
-              isOffscreen
+              isOffscreen,
+              frameCount: Math.max(frameCount, data.count),
+              frames: Array.from(data.frames || []),
+              tier: graded.tier,
+              hasWillChange: graded.hasWillChange,
+              isPromoted: graded.isPromoted,
+              notes: graded.notes,
+              kind: isTriggeredByScroll ? 'scroll-triggered' : 'javascript',
+              trigger: ioTriggeredElements.has(el) ? 'IntersectionObserver' : (isScrolling ? 'Scroll event' : undefined)
             });
           }
         }
@@ -393,46 +711,3 @@ export const INPAGE_INIT_SCRIPT = `
   };
 })();
 `;
-
-export type InpageThrashingType = "read" | "write" | "style" | "layout";
-
-export interface InpageTelemetryResult {
-  animations: {
-    id: string;
-    selector: string;
-    properties: string[];
-    source: AnimationSource;
-    durationMs: number;
-    paintArea: number;
-    isOffscreen?: boolean;
-  }[];
-  scroll: {
-    listenerCount: number;
-    usesPassive: boolean;
-    usesRafOrDebounce: boolean;
-    selectors: string[];
-    hasLayoutOnScroll: boolean;
-  };
-  thrashing: {
-    type: InpageThrashingType;
-    property: string;
-    selector: string;
-    frameIndex: number;
-    duringScroll?: boolean;
-  }[];
-  libraries: string[];
-  longAnimationFrames: {
-    supported: boolean;
-    entries: { duration: number; blockingDuration: number }[];
-  };
-  waapiAnimationFrames: {
-    selector: string;
-    properties: string[];
-    frames: number[];
-  }[];
-  scrollPhase: {
-    scrollEventCount: number;
-    scrollFrameCount: number;
-    animationSampleCount: number;
-  };
-}

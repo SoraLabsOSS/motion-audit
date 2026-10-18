@@ -94,7 +94,15 @@ export interface GpuCalibrationThresholds {
   tiledMemory: MetricBandThresholds;
 }
 
-// Power-of-Two GPU Memory Budgets (Chromium cc::TileManager allocation pools)
+// Provisional GPU pressure bands.
+//
+// The power-of-two framing reflects how GPU memory is conventionally budgeted
+// (64/128/256/512 MB pools), NOT a measurement of Chromium allocation pools and
+// NOT an empirical calibration. These are unvalidated operational targets: the
+// memory figures per layer are derived from RGBA8888 geometry, but the band
+// edges are judgement. They are the highest-priority constants to validate
+// against measured frame blocking. See evaluateMeasuredFrameTiming for the
+// measured counterpart.
 export const DESKTOP_GPU_THRESHOLDS: GpuCalibrationThresholds = {
   textureLayerCount: { A: 40, B: 80, C: 160, D: 300, F: 500, S: 20 },
   textureMemory: {

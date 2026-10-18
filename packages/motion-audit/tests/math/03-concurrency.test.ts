@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  calculateConcurrencyPenalty,
   calculatePercentile,
   calculatePeakFrameConcurrency,
   calculateP75FrameConcurrency,
   computeEffectiveConcurrency,
+  CONCURRENCY_FREE_LOAD,
+  MAX_CONCURRENCY_PENALTY,
 } from "../../src/math/concurrency.ts";
 
 test("Concurrency Math: Discrete Percentile Calculation", () => {
@@ -84,4 +87,67 @@ test("Concurrency Math: Empty and single-entry edge cases", () => {
   const singleResult = computeEffectiveConcurrency(single);
   assert.equal(singleResult.maxConcurrent, 1);
   assert.equal(singleResult.effectiveConcurrent, 1);
+});
+
+test("Concurrency Math: Sustained load costs more than a burst that clears", () => {
+  const metrics = (max: number, p75: number, mean = p75) => ({
+    effectiveConcurrent: max,
+    maxConcurrent: max,
+    meanConcurrent: mean,
+    p75Concurrent: p75,
+  });
+
+  // Nothing overlapping at all -> free.
+  assert.equal(calculateConcurrencyPenalty(metrics(1, 1)), 0);
+
+  // At the free-load boundary -> still free.
+  assert.equal(
+    calculateConcurrencyPenalty(
+      metrics(CONCURRENCY_FREE_LOAD, CONCURRENCY_FREE_LOAD)
+    ),
+    0
+  );
+
+  // Same peak, but held every frame vs. cleared between frames: the sustained
+  // case must cost strictly more.
+  const burst = calculateConcurrencyPenalty(metrics(40, 1));
+  const sustained = calculateConcurrencyPenalty(metrics(40, 40));
+  assert.ok(
+    sustained > burst,
+    `sustained 40 must cost more than bursty 40, got ${burst} vs ${sustained}`
+  );
+
+  // Monotonic in sustained load.
+  const ladder = [5, 8, 12, 20, 40].map((n) =>
+    calculateConcurrencyPenalty(metrics(n, n))
+  );
+  for (let i = 1; i < ladder.length; i++) {
+    assert.ok(
+      ladder[i]! >= ladder[i - 1]!,
+      `penalty must not fall: ${ladder.join(",")}`
+    );
+  }
+
+  // Saturates instead of growing without bound.
+  assert.equal(
+    calculateConcurrencyPenalty(metrics(500, 500)),
+    MAX_CONCURRENCY_PENALTY
+  );
+  assert.equal(
+    calculateConcurrencyPenalty(metrics(1000, 1000)),
+    MAX_CONCURRENCY_PENALTY
+  );
+});
+
+test("Concurrency Math: Penalty exceeds the old flat 12-point ceiling at real load", () => {
+  // Regression guard: the previous model was min(12, (conc - 4) * 1.5), which
+  // treated 12 concurrent and 200 concurrent animations identically.
+  assert.ok(
+    calculateConcurrencyPenalty({
+      effectiveConcurrent: 200,
+      maxConcurrent: 200,
+      meanConcurrent: 200,
+      p75Concurrent: 200,
+    }) > 12
+  );
 });

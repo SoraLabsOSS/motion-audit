@@ -27,12 +27,8 @@ SoraLabs S-to-F Engine
 
 The first layer is grounded in established browser, graphics, and web-platform specifications and rendering architecture:
 
-- **Pixel Density & Backing Store Estimation:** Under the standardized RGBA8888 backing-store model:
-  $$\mathcal{M}_{\text{raw}} = W \times H \times 4 \times \text{DPR}^2$$
-  _Precision Notice:_ This represents a **theoretical raw texture-memory estimate** rather than a claim about the complete runtime GPU memory footprint (which also accounts for alignment, driver padding, surfaces, and compositor overhead).
-- **Qualitative Rendering Pipeline Ordering:** Browser rendering architecture establishes a general qualitative cost hierarchy:
-  $$\text{Compositor-only} < \text{Paint-triggering} < \text{Layout-triggering}$$
-  SoraLabs relies on this platform-derived ordering as the physical baseline for its quantitative model.
+- **Pixel Density & Backing Store Estimation:** Under the standardized RGBA8888 backing-store model: $$\mathcal{M}_{\text{raw}} = W \times H \times 4 \times \text{DPR}^2$$ _Precision Notice:_ This represents a **theoretical raw texture-memory estimate** rather than a claim about the complete runtime GPU memory footprint (which also accounts for alignment, driver padding, surfaces, and compositor overhead).
+- **Qualitative Rendering Pipeline Ordering:** Browser rendering architecture establishes a general qualitative cost hierarchy: $$\text{Compositor-only} < \text{Paint-triggering} < \text{Layout-triggering}$$ SoraLabs relies on this platform-derived ordering as the physical baseline for its quantitative model.
 
 ---
 
@@ -53,7 +49,7 @@ The final layer contains parameters that cannot be derived from browser specific
 
 Key empirical calibration parameters include:
 
-- Layout thrashing base penalty: $\mathcal{P}_{\text{layout}} = 5$ (Chromium frame-budget baseline: calibrated against forced reflow overhead)
+- Layout thrashing base penalty: $\mathcal{P}_{\text{layout}} = 5$ (chosen to express one synchronous reflow as a bounded share of a frame budget; not yet calibrated against measured reflow overhead)
 - Style thrashing base penalty: $\mathcal{P}_{\text{style}} = 2$ (Blink tree-walk recalculation factor: ~40% of reflow cost)
 - Mount/Init phase deduplication ceiling: $\le 15$ pts (framework hydration lifecycle allowance)
 - Micro-interaction duration threshold: $\mathcal{T}_{\text{duration}} = 100\text{ms}$ (Google RAIL instantaneous perception boundary)
@@ -63,8 +59,7 @@ Key empirical calibration parameters include:
 - Concurrency model: Weighted active timeline concurrency evaluation (0.6 mean + 0.4 max)
 - GPU score synthesis: Piecewise operational band interpolation (40% texture VRAM + 40% layer count + 20% tiled scroller backing)
 
-**Empirical Protocol & Revision Notice:**
-These values represent initial calibration targets designed to achieve stable separation between the S/A/B/C/D/F performance tiers based on physical GPU allocation limits and Google RAIL thresholds.
+**Empirical Protocol & Revision Notice:** These values represent initial calibration targets designed to achieve stable separation between the S/A/B/C/D/F performance tiers based on physical GPU allocation limits and Google RAIL thresholds.
 
 _Calibration parameters are explicitly distinguished from web-platform facts and may be revised as the benchmark corpus, browser graphics architectures, and validation protocols evolve._
 
@@ -74,20 +69,20 @@ _Calibration parameters are explicitly distinguished from web-platform facts and
 
 To maintain transparent scientific boundaries, every component of the SoraLabs model is classified by its epistemic origin:
 
-| Component                                        | Epistemic Status             | Primary Basis                                  |
-| :----------------------------------------------- | :--------------------------- | :--------------------------------------------- |
-| **RGBA8888 memory equation**                     | Derived model                | Skia `kRGBA_8888` 32-bit pixel depth           |
-| **CSS $\rightarrow$ Physical pixel scaling**     | Platform-derived             | W3C CSS Values and Units Module Level 3        |
-| **Compositor / Paint / Layout ordering**         | Browser-architecture-derived | Blink rendering pipeline stages                |
-| **Paint-area ratio measurement**                 | Observable heuristic         | CDP layer quad bounds vs viewport bounds       |
-| **$256 \times 256$ tile pooling**                | Platform-derived             | Chromium `cc::TileManager` tile dimensions     |
-| **Layout thrashing penalty ($\mathcal{P} = 5$)** | Hardware heuristic           | 16.6ms frame-budget violation boundary         |
-| **Style thrashing penalty ($\mathcal{P} = 2$)**  | Hardware heuristic           | Blink tree-walk style recalculation ratio      |
-| **$100\text{ms}$ duration threshold**             | Adopted standard                | Google RAIL User Experience Framework          |
-| **Pipeline bottleneck coupling**                  | Physical systems model          | Amdahl pipeline throughput bounding            |
-| **VRAM power-of-two tier boundaries**             | Hardware allocation targets     | Standard GPU texture memory buffer pools       |
-| **Timeline concurrency metric**                   | Derived systems model           | W3C WAAPI timeline contention modeling        |
-| **Chromium Cumulative Reflow Model**              | Observable heuristic            | Blink forced layout invalidation & LoAF budget |
+| Component | Epistemic Status | Primary Basis |
+| :-- | :-- | :-- |
+| **RGBA8888 memory equation** | Derived model | Skia `kRGBA_8888` 32-bit pixel depth |
+| **CSS $\rightarrow$ Physical pixel scaling** | Platform-derived | W3C CSS Values and Units Module Level 3 |
+| **Compositor / Paint / Layout ordering** | Browser-architecture-derived | Blink rendering pipeline stages |
+| **Paint-area ratio measurement** | Observable heuristic | CDP layer quad bounds vs viewport bounds |
+| **$256 \times 256$ tile pooling** | Platform-derived | Chromium `cc::TileManager` tile dimensions |
+| **Layout thrashing penalty ($\mathcal{P} = 5$)** | Hardware heuristic | 16.6ms frame-budget violation boundary |
+| **Style thrashing penalty ($\mathcal{P} = 2$)** | Hardware heuristic | Blink tree-walk style recalculation ratio |
+| **$100\text{ms}$ duration threshold** | Adopted standard | Google RAIL User Experience Framework |
+| **Pipeline bottleneck coupling** | Physical systems model | Amdahl pipeline throughput bounding |
+| **VRAM power-of-two tier boundaries** | Hardware allocation targets | Standard GPU texture memory buffer pools |
+| **Timeline concurrency metric** | Derived systems model | W3C WAAPI timeline contention modeling |
+| **Chromium Cumulative Reflow Model** | Observable heuristic | Blink forced layout invalidation & LoAF budget |
 
 ---
 
@@ -98,8 +93,7 @@ To maintain transparent scientific boundaries, every component of the SoraLabs m
 - **Desktop Reference:** $1440 \times 900\text{px}$, Reference Density: $\text{DPR} = 2$ ($4\times$ pixels).
 - **Mobile Reference:** $390 \times 844\text{px}$, Reference Density: $\text{DPR} = 3$ ($9\times$ pixels).
 
-> **Modeling Boundary Notice:**
-> Raw texture memory and tiled backing-store estimates are reported as separate modeled quantities and must not be interpreted as additive measurements of physical VRAM without accounting for browser implementation details.
+> **Modeling Boundary Notice:** Raw texture memory and tiled backing-store estimates are reported as separate modeled quantities and must not be interpreted as additive measurements of physical VRAM without accounting for browser implementation details.
 
 ### Continuous Score & Tier Boundary Continuum:
 
@@ -109,19 +103,19 @@ The aggregate scoring function continuously maps measurements into a normalized 
 
 ### Desktop Initial Calibration Targets ($\text{DPR} = 2$):
 
-| Metric                  | Tier S           | Tier A                  | Tier B                  | Tier C                  | Tier D                   | Tier F (Critical)   |
-| :---------------------- | :--------------- | :---------------------- | :---------------------- | :---------------------- | :----------------------- | :------------------ |
-| **Raw Texture VRAM**    | $< 64\text{MB}$  | $[64,\, 128)\text{MB}$  | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$ | $[512,\, 1024)\text{MB}$ | $\ge 1.0\text{GB}$  |
-| **Composited Layers**   | $< 20$           | $[20,\, 40)$            | $[40,\, 80)$            | $[80,\, 160)$           | $[160,\, 300)$           | $\ge 300$           |
-| **Tiled Backing Store** | $< 32\text{MB}$  | $[32,\, 64)\text{MB}$   | $[64,\, 128)\text{MB}$  | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$  | $\ge 512\text{MB}$  |
+| Metric | Tier S | Tier A | Tier B | Tier C | Tier D | Tier F (Critical) |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **Raw Texture VRAM** | $< 64\text{MB}$ | $[64,\, 128)\text{MB}$ | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$ | $[512,\, 1024)\text{MB}$ | $\ge 1.0\text{GB}$ |
+| **Composited Layers** | $< 20$ | $[20,\, 40)$ | $[40,\, 80)$ | $[80,\, 160)$ | $[160,\, 300)$ | $\ge 300$ |
+| **Tiled Backing Store** | $< 32\text{MB}$ | $[32,\, 64)\text{MB}$ | $[64,\, 128)\text{MB}$ | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$ | $\ge 512\text{MB}$ |
 
 ### Mobile Initial Calibration Targets ($\text{DPR} = 3$):
 
-| Metric                  | Tier S          | Tier A                 | Tier B                  | Tier C                  | Tier D                  | Tier F (Critical)   |
-| :---------------------- | :-------------- | :--------------------- | :---------------------- | :---------------------- | :---------------------- | :------------------ |
-| **Raw Texture VRAM**    | $< 32\text{MB}$ | $[32,\, 64)\text{MB}$  | $[64,\, 128)\text{MB}$  | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$ | $\ge 512\text{MB}$  |
-| **Composited Layers**   | $< 10$          | $[10,\, 20)$           | $[20,\, 40)$            | $[40,\, 80)$            | $[80,\, 150)$           | $\ge 150$           |
-| **Tiled Backing Store** | $< 24\text{MB}$ | $[24,\, 48)\text{MB}$  | $[48,\, 96)\text{MB}$   | $[96,\, 192)\text{MB}$  | $[192,\, 384)\text{MB}$ | $\ge 384\text{MB}$  |
+| Metric | Tier S | Tier A | Tier B | Tier C | Tier D | Tier F (Critical) |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **Raw Texture VRAM** | $< 32\text{MB}$ | $[32,\, 64)\text{MB}$ | $[64,\, 128)\text{MB}$ | $[128,\, 256)\text{MB}$ | $[256,\, 512)\text{MB}$ | $\ge 512\text{MB}$ |
+| **Composited Layers** | $< 10$ | $[10,\, 20)$ | $[20,\, 40)$ | $[40,\, 80)$ | $[80,\, 150)$ | $\ge 150$ |
+| **Tiled Backing Store** | $< 24\text{MB}$ | $[24,\, 48)\text{MB}$ | $[48,\, 96)\text{MB}$ | $[96,\, 192)\text{MB}$ | $[192,\, 384)\text{MB}$ | $\ge 384\text{MB}$ |
 
 ---
 
@@ -129,7 +123,7 @@ The aggregate scoring function continuously maps measurements into a normalized 
 
 > **Independent Specification & Architecture**
 >
-> SoraLabs Motion Audit independently derives its technical model directly from browser rendering architecture, W3C web-platform specifications, Chromium Blink compositor behavior, graphics-memory principles (Skia/OpenGL), and empirical benchmarking.
+> SoraLabs Motion Audit independently derives its technical model directly from browser rendering architecture, W3C web-platform specifications, Chromium Blink compositor behavior, and graphics-memory principles (Skia/OpenGL). Its calibration parameters have not yet been validated against an empirical benchmark corpus.
 >
 > All auditing rules, scoring equations, calibration parameters, and algorithms are independently designed and maintained under the SoraLabs architecture.
 
@@ -140,6 +134,7 @@ The aggregate scoring function continuously maps measurements into a normalized 
 Every algorithm, physical formula, and calibration guideline in SoraLabs Motion Audit is grounded in verifiable primary documentation and open-source specifications:
 
 ### A. W3C Web Platform Specifications
+
 - **W3C CSS Values and Units Module Level 3** (Device Pixel Ratio & absolute physical length definitions):  
   [https://www.w3.org/TR/css-values-3/#absolute-lengths](https://www.w3.org/TR/css-values-3/#absolute-lengths)
 - **W3C CSS Transforms Module Level 2** (GPU compositor off-thread transform mechanics):  
@@ -150,6 +145,7 @@ Every algorithm, physical formula, and calibration guideline in SoraLabs Motion 
   [https://w3c.github.io/long-animation-frames/](https://w3c.github.io/long-animation-frames/)
 
 ### B. Chromium & Blink Rendering Architecture
+
 - **Chromium cc::TileManager Source Code** ($256 \times 256$ tile pooling & raster scheduling):  
   [`//src/cc/raster/tile_manager.cc`](https://source.chromium.org/chromium/chromium/src/+/main:cc/raster/tile_manager.cc)
 - **Chromium PictureLayerTiling** (Pre-raster lookahead horizon & margins):  
@@ -160,6 +156,7 @@ Every algorithm, physical formula, and calibration guideline in SoraLabs Motion 
   [`SkColorType::kRGBA_8888_SkColorType` (4 bytes/px)](https://api.skia.org/SkImageInfo_8h.html)
 
 ### C. Google Web Vitals & Performance Engineering Standards
+
 - **Google RAIL User Experience Model** ($100\text{ms}$ instantaneous perception, $16.6\text{ms}$ frame budget):  
   [https://web.dev/articles/rail](https://web.dev/articles/rail)
 - **Google web.dev: Avoid Large, Complex Layouts and Layout Thrashing** (Forced synchronous layout mechanics):  
@@ -170,9 +167,10 @@ Every algorithm, physical formula, and calibration guideline in SoraLabs Motion 
   [https://web.dev/articles/performance-scoring](https://web.dev/articles/performance-scoring)
 
 ### D. Mathematics & Computer Science Foundations
+
 - **NIST/SEMATECH e-Handbook of Statistical Methods - Section 1.3.5.9** (Percentile linear interpolation):  
   [https://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm](https://www.itl.nist.gov/div898/handbook/prc/section2/prc252.htm)
 - **Amdahl's Law / Weakest-Link Principle** (Sequential pipeline bottleneck modeling):  
-  *Gene Amdahl, "Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities", AFIPS Conference Proceedings (1967).*
+  _Gene Amdahl, "Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities", AFIPS Conference Proceedings (1967)._
 - **Longest Consecutive Sequence ($O(N)$ Hash-Set Clustering)**:  
-  *Thomas H. Cormen et al., Introduction to Algorithms (CLRS), MIT Press.*
+  _Thomas H. Cormen et al., Introduction to Algorithms (CLRS), MIT Press._

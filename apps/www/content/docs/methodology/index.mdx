@@ -11,18 +11,16 @@ sidebarTitle: Conceptual Analysis
   research and attribution purposes. It is not a reproduction of MotionScore's
   internal implementation or scoring algorithm. Where Motion Audit introduces
   additional metrics, formulas, thresholds, or calibration methods, those are
-  independently developed and experimentally validated by SoraLabs.
+  independently developed by SoraLabs and are currently unvalidated operational
+  targets, not experimentally confirmed values.
 </Callout>
 
-The [Measurement Provenance and Methodology
-Boundaries](/docs/methodology/measurement-provenance) page explains the public
-foundations, browser-observable signals, and calibration boundaries used by
-Motion Audit.
+The [Measurement Provenance and Methodology Boundaries](/docs/methodology/measurement-provenance) page explains the public foundations, browser-observable signals, and calibration boundaries used by Motion Audit.
 
 <Callout title="Attribution and Independent Implementation" type="info">
 SoraLabs Motion Audit uses the publicly documented S-to-F grading hierarchy from MotionScore by Motion.dev ([https://score.motion.dev/methodology](https://score.motion.dev/methodology)) with permission.
 
-The project independently derives its technical quantitative model from browser rendering architecture, W3C web-platform specifications, Chromium compositor behavior, GPU memory and graphics-system principles, and empirical benchmarking.
+The project independently derives its technical quantitative model from browser rendering architecture, W3C web-platform specifications, Chromium compositor behavior, and GPU memory and graphics-system principles. The per-layer memory figures are derived from RGBA8888 geometry; the band edges and weights are unvalidated operational targets pending a benchmark corpus.
 
 The permitted MotionScore reference is limited to the documented grading hierarchy and its conceptual rendering categories. SoraLabs does not reuse proprietary source code, internal closure heuristics, unpublished assets, or MotionScore output as a calibration oracle.
 
@@ -34,39 +32,27 @@ Motion Audit's quantitative auditing rules, scoring model, calibration parameter
 
 Motion Audit keeps three kinds of evidence separate:
 
-1. **Public facts** — behavior documented by W3C specifications, Chromium
-   documentation, or the Chrome DevTools Protocol.
-2. **Observable measurements** — values collected from a running browser, such
-   as Web Animations API state, Long Animation Frames entries, CDP layer
-   changes, compositing reasons, and paint counts.
-3. **Project calibration** — tunable SoraLabs choices such as pillar weights,
-   penalty points, memory bands, duration floors, and tier boundaries.
+1. **Public facts** — behavior documented by W3C specifications, Chromium documentation, or the Chrome DevTools Protocol.
+2. **Observable measurements** — values collected from a running browser, such as Web Animations API state, Long Animation Frames entries, CDP layer changes, compositing reasons, and paint counts.
+3. **Project calibration** — tunable SoraLabs choices such as pillar weights, penalty points, memory bands, duration floors, and tier boundaries.
 
-Public facts and browser observations can justify a measurement capability.
-Calibration values are operational targets, not universal browser, hardware,
-W3C, Lighthouse, or Core Web Vitals constants.
+Public facts and browser observations can justify a measurement capability. Calibration values are operational targets, not universal browser, hardware, W3C, Lighthouse, or Core Web Vitals constants.
 
-Third-party artifacts are not treated as implementation specifications, test
-oracles, or sources of constants. Motion Audit relies on public behavior and
-its own measured calibration fixtures.
+Third-party artifacts are not treated as implementation specifications, test oracles, or sources of constants. Motion Audit relies on public behavior and its own measured calibration fixtures.
 
 ## 2.2 Permitted browser signals
 
 The implementation uses public interfaces with explicit limitations:
 
 | Signal | What it can support | What it cannot prove |
-| :--- | :--- | :--- |
+| :-- | :-- | :-- |
 | Web Animations API | Active animations, keyframes, timing, and sampled animation frames | That an animation is always compositor-executed |
 | Long Animation Frames API | Long-frame duration and blocking-duration observations | Availability in every browser or a complete dropped-frame model |
 | CDP LayerTree | Layer snapshots, layer changes, paint counts, and compositing reasons | Physical GPU allocation or a universal rendering cost |
 | CSS pixel and DPR definitions | A theoretical raw RGBA texture estimate | Driver allocation, compression, swap-chain, or tile-manager memory |
 | Forced-layout guidance and DOM observations | Candidate read/write layout-thrashing patterns | A complete causal trace for every browser pipeline decision |
 
-For a real-site benchmark, raw telemetry must be reported beside the
-operational score: browser and version, OS, viewport, DPR, run count, warm-up
-policy, frame observations, LoAF/long-task observations, layer telemetry, and
-modeled memory. Results are comparative indicators within that controlled
-environment.
+For a real-site benchmark, raw telemetry must be reported beside the operational score: browser and version, OS, viewport, DPR, run count, warm-up policy, frame observations, LoAF/long-task observations, layer telemetry, and modeled memory. Results are comparative indicators within that controlled environment.
 
 ---
 
@@ -80,14 +66,14 @@ MotionScore publicly documents an S-to-F grading framework for evaluating animat
 
 Public documentation on [https://score.motion.dev/methodology](https://score.motion.dev/methodology) outlines an **S-to-F qualitative hierarchy** reflecting how deeply animations disturb the browser's render pipeline:
 
-| Tier  | Classification               | Pipeline Cost | Documented Conceptual Description                                                                                           |
-| :---- | :--------------------------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------- |
-| **S** | **Compositor-only**          | Lowest        | Executed off the main thread on the Compositor Thread (e.g., CSS/WAAPI `transform`, `opacity`, `filter`, `clip-path`).      |
-| **A** | **Main-thread composite**    | Low           | Compositing occurs off-thread, but animation ticks originate on the main thread (JS/WAAPI drivers).                         |
-| **B** | **Measure before Composite** | Moderate      | Geometric measurement occurs prior to delegating to compositor execution (e.g., FLIP layout transitions).                   |
-| **C** | **Paint-triggering**         | High          | Visual invalidation requires rasterization passes (e.g., `background-color`, `box-shadow`, `border-radius`, CSS variables). |
-| **D** | **Layout-triggering**        | Very High     | Geometry recalculation (reflow) disrupts neighboring DOM nodes (e.g., `width`, `height`, `top`, `left`, flex/grid changes). |
-| **F** | **Thrashing**                | Critical      | Alternating DOM reads and writes defeat browser batching, triggering synchronous style/reflow cycles.                       |
+| Tier | Classification | Pipeline Cost | Documented Conceptual Description |
+| :-- | :-- | :-- | :-- |
+| **S** | **Compositor-only** | Lowest | Executed off the main thread on the Compositor Thread (e.g., CSS/WAAPI `transform`, `opacity`, `filter`, `clip-path`). |
+| **A** | **Main-thread composite** | Low | Compositing occurs off-thread, but animation ticks originate on the main thread (JS/WAAPI drivers). |
+| **B** | **Measure before Composite** | Moderate | Geometric measurement occurs prior to delegating to compositor execution (e.g., FLIP layout transitions). |
+| **C** | **Paint-triggering** | High | Visual invalidation requires rasterization passes (e.g., `background-color`, `box-shadow`, `border-radius`, CSS variables). |
+| **D** | **Layout-triggering** | Very High | Geometry recalculation (reflow) disrupts neighboring DOM nodes (e.g., `width`, `height`, `top`, `left`, flex/grid changes). |
+| **F** | **Thrashing** | Critical | Alternating DOM reads and writes defeat browser batching, triggering synchronous style/reflow cycles. |
 
 <Callout title="Contextual Invalidation Disclaimer" type="warn">
   These classifications describe the conceptual hierarchy documented by

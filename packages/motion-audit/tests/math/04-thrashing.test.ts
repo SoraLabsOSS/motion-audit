@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   computeMaxConsecutiveRun,
   analyzeLayoutThrashing,
+  MIN_CONSECUTIVE_REFLOW_FRAMES,
 } from "../../src/math/thrashing-graph.ts";
 import type { ThrashViolation } from "../../src/math/thrashing-graph.ts";
 
@@ -161,5 +162,64 @@ test("Cumulative Reflow Math: Sustained animation jank across consecutive frames
     result.score,
     0,
     "8 consecutive reflow frames should exhaust frame budget (score = 0)"
+  );
+});
+
+test("Cumulative Reflow Math: Isolated reflow is discounted, sustained burst is not", () => {
+  const at = (frame: number): ThrashViolation => ({
+    api: "offsetHeight",
+    frame,
+    readSelector: ".item",
+    type: "layout",
+    writeSelector: ".item",
+  });
+
+  // One isolated reflow is charged at a discount, never waived to zero.
+  const isolated = analyzeLayoutThrashing([at(1)]);
+  assert.ok(
+    isolated.totalPenalty > 0,
+    "isolated reflow must still carry a cost"
+  );
+  assert.equal(isolated.maxConsecutiveFrames, 1);
+
+  // A burst across consecutive frames is charged in full and scores worse.
+  const sustained = analyzeLayoutThrashing([1, 2, 3, 4, 5, 6, 7, 8].map(at));
+  assert.ok(sustained.maxConsecutiveFrames >= MIN_CONSECUTIVE_REFLOW_FRAMES);
+  assert.ok(
+    sustained.totalPenalty > isolated.totalPenalty,
+    `sustained ${sustained.totalPenalty} must exceed isolated ${isolated.totalPenalty}`
+  );
+
+  // The discount must actually reduce cost: three isolated reflows on
+  // non-consecutive frames cost less than three on consecutive frames.
+  const scattered = analyzeLayoutThrashing([1, 40, 90].map(at));
+  const contiguous = analyzeLayoutThrashing([1, 2, 3].map(at));
+  assert.ok(scattered.totalPenalty < contiguous.totalPenalty);
+});
+
+test("Cumulative Reflow Math: Intra-frame N+1 loop is still detected", () => {
+  // Three forced reflows inside ONE frame is the classic query-loop anti-pattern.
+  // Gating on consecutive frames would have silently dropped it.
+  const oneFrameLoop = analyzeLayoutThrashing(
+    [1, 1, 1].map(() => ({
+      api: "offsetHeight",
+      frame: 1,
+      readSelector: ".item",
+      type: "layout" as const,
+      writeSelector: ".item",
+    }))
+  );
+  const single = analyzeLayoutThrashing([
+    {
+      api: "offsetHeight",
+      frame: 1,
+      readSelector: ".item",
+      type: "layout",
+      writeSelector: ".item",
+    },
+  ]);
+  assert.ok(
+    oneFrameLoop.totalPenalty > single.totalPenalty,
+    `intra-frame loop ${oneFrameLoop.totalPenalty} must exceed single ${single.totalPenalty}`
   );
 });

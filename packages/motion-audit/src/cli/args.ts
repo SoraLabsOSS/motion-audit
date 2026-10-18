@@ -16,11 +16,42 @@ export interface CliOptions {
   noColor: boolean;
 }
 
+const normalizeBadgeArgv = (argv: string[]): string[] => {
+  const result: string[] = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    result.push(argv[i]);
+    if (argv[i] === "--badge") {
+      const next = argv[i + 1];
+      if (!next || next.startsWith("-")) {
+        result.push("motion-audit.svg");
+      }
+    }
+  }
+  return result;
+};
+
+const parseThreshold = (raw?: string): Tier | null => {
+  if (!raw) {
+    return null;
+  }
+  const t = raw.toUpperCase();
+  if (["S", "A", "B", "C", "D", "F"].includes(t)) {
+    // SAFETY: Array inclusion check guarantees t is a valid Tier
+    return t as Tier;
+  }
+  process.stderr.write(
+    `Invalid threshold '${raw}'. Must be one of S, A, B, C, D, F.\n`
+  );
+  process.exit(2);
+};
+
 export const parseCliArgs = (argv: string[]): CliOptions | null => {
   try {
+    const normalizedArgv = normalizeBadgeArgv(argv);
+
     const { values, positionals } = parseArgs({
       allowPositionals: true,
-      args: argv,
+      args: normalizedArgv,
       options: {
         ai: { default: false, type: "boolean" },
         badge: { type: "string" },
@@ -35,14 +66,7 @@ export const parseCliArgs = (argv: string[]): CliOptions | null => {
       },
     });
 
-    let parsedThreshold: Tier | null = null;
-    if (values.threshold) {
-      const t = values.threshold.toUpperCase();
-      if (["S", "A", "B", "C", "D", "F"].includes(t)) {
-        // SAFETY: Array inclusion check guarantees t is a valid Tier
-        parsedThreshold = t as Tier;
-      }
-    }
+    const parsedThreshold = parseThreshold(values.threshold);
 
     const help = Boolean(values.help);
     const version = !help && Boolean(values.version);

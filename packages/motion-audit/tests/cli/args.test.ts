@@ -53,6 +53,10 @@ describe("CLI Args Parser (clig.dev compliant)", () => {
     assert.ok(opts);
     assert.equal(opts.badge, "custom.svg");
     assert.equal(opts.summary, "out.json");
+
+    const defaultBadgeOpts = parseCliArgs(["https://example.com", "--badge"]);
+    assert.ok(defaultBadgeOpts);
+    assert.equal(defaultBadgeOpts.badge, "motion-audit.svg");
   });
 
   test("parses viewport filters", () => {

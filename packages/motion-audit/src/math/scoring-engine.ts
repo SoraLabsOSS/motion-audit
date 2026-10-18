@@ -165,10 +165,11 @@ export interface OverallAuditSynthesis {
 
 export const synthesizeOverallAudit = (
   desktopScore: number,
-  mobileScore: number,
-  desktopTier: PerformanceTier,
-  mobileTier: PerformanceTier
-): OverallAuditSynthesis => ({
-  overallScore: Math.round((desktopScore + mobileScore) / 2),
-  overallTier: averageTier([desktopTier, mobileTier]),
-});
+  mobileScore: number
+): OverallAuditSynthesis => {
+  const overallScore = Math.round((desktopScore + mobileScore) / 2);
+  return {
+    overallScore,
+    overallTier: tierFromScore(overallScore),
+  };
+};

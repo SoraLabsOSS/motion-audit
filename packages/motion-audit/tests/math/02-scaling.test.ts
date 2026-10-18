@@ -9,6 +9,10 @@ import {
   calculateAnimationDurationMultiplier,
   calculateScrollListenerPenalty,
   calculateScrollBehaviorPenalty,
+  calculateScrollDrivenAnimationPenalty,
+  isConditionallyCompositable,
+  resolveEffectivePropertyCost,
+  COMPOSITOR_FALLBACK_COST,
   RAIL_INSTANT_RESPONSE_MS,
   BASELINE_PAINT_AREA_RATIO,
   MAX_SCROLL_CONTENTION_PENALTY,
@@ -158,6 +162,117 @@ test("Scaling Math: Scroll behavior penalties include blocking and layout work",
   );
 });
 
+test("Scaling Math: Scroll-driven animation load saturates and ignores compositor-only work", () => {
+  const viewportArea = 1440 * 900;
+
+  // No scroll-driven animation -> no load penalty
+  assert.equal(calculateScrollDrivenAnimationPenalty([], viewportArea), 0);
+
+  // Compositor-only scroll animation is sampled off-thread -> no main-thread cost.
+  // This is the case that previously scored a perfect 100 while re-running every frame.
+  assert.equal(
+    calculateScrollDrivenAnimationPenalty(
+      [{ paintArea: viewportArea, properties: ["transform", "opacity"] }],
+      viewportArea
+    ),
+    0
+  );
+
+  // A full-viewport paint animation is PAINT(20) x area clamp(4) / PAINT = 4 work
+  // units, so it costs the same as 4 scroll listeners.
+  const fullViewportPaint = (n: number) =>
+    calculateScrollDrivenAnimationPenalty(
+      Array.from({ length: n }, () => ({
+        paintArea: viewportArea,
+        properties: ["backgroundColor"],
+      })),
+      viewportArea
+    );
+  assert.equal(fullViewportPaint(1), calculateScrollListenerPenalty(4));
+  assert.ok(
+    fullViewportPaint(1) > 0,
+    "paint-driven scroll animation must not be free"
+  );
+
+  // Layout outranks paint at equal footprint (LAYOUT 50 vs PAINT 20).
+  const oneLayout = calculateScrollDrivenAnimationPenalty(
+    [{ paintArea: viewportArea, properties: ["width"] }],
+    viewportArea
+  );
+  assert.ok(oneLayout > fullViewportPaint(1));
+
+  // Regression guard: the curve must resolve animation count. Feeding raw cost
+  // points into a curve calibrated for listener counts saturated at the first
+  // paint animation, collapsing 5 / 20 / 50 animations to one penalty.
+  const tiny = (n: number) =>
+    calculateScrollDrivenAnimationPenalty(
+      Array.from({ length: n }, () => ({
+        paintArea: viewportArea * 0.01,
+        properties: ["backgroundColor"],
+      })),
+      viewportArea
+    );
+  const spread = [1, 5, 20, 50].map(tiny);
+  for (let i = 1; i < spread.length; i++) {
+    assert.ok(
+      spread[i]! > spread[i - 1]!,
+      `penalty must increase with animation count, got ${spread.join(", ")}`
+    );
+  }
+
+  // Saturation caps at the shared contention ceiling.
+  assert.equal(fullViewportPaint(500), MAX_SCROLL_CONTENTION_PENALTY);
+  assert.equal(tiny(500), MAX_SCROLL_CONTENTION_PENALTY);
+
+  // Below the ceiling the penalty is monotonic in accumulated cost.
+  // PAINT(20) x 0.25 = 5 work units -> 18, and x 0.5 = 10 work units -> 24.
+  const cheap = calculateScrollDrivenAnimationPenalty(
+    [{ paintArea: viewportArea * 0.025, properties: ["backgroundColor"] }],
+    viewportArea
+  );
+  const pricier = calculateScrollDrivenAnimationPenalty(
+    [{ paintArea: viewportArea * 0.05, properties: ["backgroundColor"] }],
+    viewportArea
+  );
+  const twoAnims = calculateScrollDrivenAnimationPenalty(
+    [
+      { paintArea: viewportArea * 0.025, properties: ["backgroundColor"] },
+      { paintArea: viewportArea * 0.025, properties: ["backgroundColor"] },
+    ],
+    viewportArea
+  );
+  assert.ok(cheap > 0 && cheap < MAX_SCROLL_CONTENTION_PENALTY);
+  assert.ok(pricier > cheap);
+  assert.ok(twoAnims > cheap);
+});
+
+test("Scaling Math: Scroll behavior penalty folds in scroll-driven animation load", () => {
+  const base = {
+    hasLayoutOnScroll: false,
+    listenerCount: 0,
+    nonPassiveCount: 0,
+    unoptimizedCount: 0,
+  };
+
+  // Omitting the optional field preserves the listener-only behaviour exactly.
+  assert.equal(calculateScrollBehaviorPenalty(base), 0);
+
+  // Load adds on top of listener hygiene, still bounded by the 60pt ceiling.
+  const withLoad = calculateScrollBehaviorPenalty({
+    ...base,
+    scrollDrivenAnimationPenalty: 12,
+  });
+  assert.equal(withLoad, 12);
+
+  assert.equal(
+    calculateScrollBehaviorPenalty({
+      ...base,
+      scrollDrivenAnimationPenalty: 999,
+    }),
+    60
+  );
+});
+
 test("Scaling Math: Offscreen Animation Penalty Multiplier", () => {
   assert.equal(OFFSCREEN_MUTATION_PENALTY_MULTIPLIER, 1.5);
 
@@ -190,5 +305,72 @@ test("Scaling Math: Offscreen Animation Penalty Multiplier", () => {
   assert.equal(
     calculateOffscreenPenaltyMultiplier(true, PIPELINE_COSTS.CSS_VARIABLE),
     1.5
+  );
+});
+
+test("Scaling Math: Conditionally compositable property degrades to paint when unpromoted", () => {
+  assert.ok(isConditionallyCompositable("filter"));
+  assert.ok(isConditionallyCompositable("backdrop-filter"));
+  assert.ok(isConditionallyCompositable("clip-path"));
+  // Transform-backed properties are promoted by Chromium unconditionally.
+  assert.ok(!isConditionallyCompositable("transform"));
+  assert.ok(!isConditionallyCompositable("opacity"));
+  assert.ok(!isConditionallyCompositable("translate"));
+
+  // The regression: an unpromoted filter animation used to score a free 100.
+  assert.equal(
+    resolveEffectivePropertyCost(["filter"], true),
+    PIPELINE_COSTS.COMPOSITOR
+  );
+  assert.equal(
+    resolveEffectivePropertyCost(["filter"], false),
+    COMPOSITOR_FALLBACK_COST
+  );
+  assert.equal(COMPOSITOR_FALLBACK_COST, PIPELINE_COSTS.PAINT);
+
+  // Unpromoted transform/opacity stays free: Chromium promotes them anyway.
+  assert.equal(
+    resolveEffectivePropertyCost(["transform"], false),
+    PIPELINE_COSTS.COMPOSITOR
+  );
+  assert.equal(
+    resolveEffectivePropertyCost(["opacity"], false),
+    PIPELINE_COSTS.COMPOSITOR
+  );
+
+  // Non-compositor properties are unaffected by promotion status.
+  assert.equal(
+    resolveEffectivePropertyCost(["width"], false),
+    PIPELINE_COSTS.LAYOUT
+  );
+  assert.equal(
+    resolveEffectivePropertyCost(["width"], true),
+    PIPELINE_COSTS.LAYOUT
+  );
+  assert.equal(
+    resolveEffectivePropertyCost(["backgroundColor"], false),
+    PIPELINE_COSTS.PAINT
+  );
+
+  // Unmeasured promotion is not treated as "not promoted".
+  assert.equal(
+    resolveEffectivePropertyCost(["filter"]),
+    PIPELINE_COSTS.COMPOSITOR
+  );
+
+  // Mixed property sets resolve on the worst offender.
+  assert.equal(
+    resolveEffectivePropertyCost(["transform", "filter"], false),
+    COMPOSITOR_FALLBACK_COST
+  );
+  assert.equal(
+    resolveEffectivePropertyCost(["filter", "width"], false),
+    PIPELINE_COSTS.LAYOUT
+  );
+
+  // Empty input stays free.
+  assert.equal(
+    resolveEffectivePropertyCost([], false),
+    PIPELINE_COSTS.COMPOSITOR
   );
 });
