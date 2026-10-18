@@ -35,6 +35,8 @@
     "prepublishOnly": "npm run build",
     "check-types": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json",
+    "check": "npm run typecheck && npm run typecheck:test",
     "test": "bun test tests",
     "test:math": "bun test tests/math",
     "bench:math": "bun bench/math/thrashing.bench.ts",

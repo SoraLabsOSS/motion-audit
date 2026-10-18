@@ -9,18 +9,8 @@ import {
   PIPELINE_COSTS,
 } from "../../src/math/scaling.js";
 
-declare global {
-  interface Window {
-    __MOTION_AUDIT__?: {
-      getJsAnimations: () => {
-        id: string;
-        properties: string[];
-        selector: string;
-      }[];
-    };
-  }
-}
-
+// window.__MOTION_AUDIT__ is declared once, in runner.ts, against
+// InpageMotionAuditApi. Redeclaring a narrower shape here conflicts with it.
 describe("SVG Animation Detection & Scoring Verification", () => {
   it("detects runtime SVG attribute mutations in browser", async () => {
     const browser = await launch({

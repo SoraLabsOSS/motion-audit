@@ -106,10 +106,11 @@ describe("Measured frame timing as the primary report result", () => {
     const modelLooksGreat = createMockViewport(95);
     const modelLooksGreatBlocked = createMockViewport(95, 260);
 
-    expect(modelLooksGreat.frameTiming?.verdict).toBe("clean");
-    expect(modelLooksGreatBlocked.frameTiming?.verdict).toBe("poor");
+    assert.equal(modelLooksGreat.frameTiming?.verdict, "clean");
+    assert.equal(modelLooksGreatBlocked.frameTiming?.verdict, "poor");
     // Same model score, opposite measured reality.
-    expect(modelLooksGreatBlocked.overallScore).toBe(
+    assert.equal(
+      modelLooksGreatBlocked.overallScore,
       modelLooksGreat.overallScore
     );
   });
@@ -119,7 +120,7 @@ describe("Measured frame timing as the primary report result", () => {
       createMockViewport(90, 0).frameTiming,
       createMockViewport(90, 180).frameTiming
     );
-    expect(combined.verdict).toBe("degraded");
-    expect(combined.totalBlockingMs).toBe(180);
+    assert.equal(combined.verdict, "degraded");
+    assert.equal(combined.totalBlockingMs, 180);
   });
 });
