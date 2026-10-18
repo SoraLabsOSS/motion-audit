@@ -40,18 +40,26 @@ export interface MeasuredFrameTelemetry {
   supported?: boolean;
   totalBlockingDurationMs?: number;
   totalDurationMs?: number;
+  /** Blocking during the interaction (scroll) phase. Preferred scoring input. */
+  interactionBlockingMs?: number;
+  loadBlockingMs?: number;
 }
 
 export interface MeasuredFrameTiming {
   /** Long animation frames the browser reported during the run. */
   loafEntryCount: number;
-  /** Longest single frame observed, in milliseconds. */
+  /** Blocking during the interaction phase. This drives the score. */
+  scrollBlockingMs: number;
+  /** Blocking before the interaction phase, i.e. page load. Not motion. */
+  loadBlockingMs: number;
+  /** Blocking across the whole run. Reported for transparency. */
+  totalBlockingMs: number;
+  /** Longest single frame observed, in milliseconds. Not scored: it varies
+   *  far more between runs than the blocking total. */
   maxFrameMs: number;
   /** Score in [0, 100], or null when the browser cannot measure this. */
   score: number | null;
   tier: PerformanceTier | null;
-  /** Total milliseconds frames spent past the 50ms LoAF threshold. */
-  totalBlockingMs: number;
   verdict: FrameTimingVerdict;
 }
 
@@ -109,26 +117,38 @@ export const evaluateMeasuredFrameTiming = (
   const totalBlockingMs = Math.max(0, telemetry?.totalBlockingDurationMs ?? 0);
   const maxFrameMs = Math.max(0, telemetry?.maxDurationMs ?? 0);
   const loafEntryCount = Math.max(0, telemetry?.entryCount ?? 0);
+  const loadBlockingMs = Math.max(0, telemetry?.loadBlockingMs ?? 0);
+  // Page load is not motion. Only the interaction window is scored; when the
+  // run was never marked, fall back to the whole-run total rather than
+  // reporting a clean 0 for a page that demonstrably blocked.
+  const scrollBlockingMs = Math.max(
+    0,
+    telemetry?.interactionBlockingMs ?? totalBlockingMs
+  );
 
   if (telemetry?.supported !== true) {
     return {
+      loadBlockingMs,
       loafEntryCount,
       maxFrameMs,
       score: null,
+      scrollBlockingMs,
       tier: null,
       totalBlockingMs,
       verdict: "unavailable",
     };
   }
 
-  const score = interpolateBlockingBudget(totalBlockingMs);
+  const score = interpolateBlockingBudget(scrollBlockingMs);
   return {
+    loadBlockingMs,
     loafEntryCount,
     maxFrameMs,
     score,
+    scrollBlockingMs,
     tier: tierFromScore(score),
     totalBlockingMs,
-    verdict: verdictFromBlocking(totalBlockingMs, score),
+    verdict: verdictFromBlocking(scrollBlockingMs, score),
   };
 };
 
@@ -148,9 +168,11 @@ export const combineFrameTiming = (
   const measurable = present.filter((r) => r.score !== null);
   if (measurable.length === 0) {
     return {
+      loadBlockingMs: 0,
       loafEntryCount: 0,
       maxFrameMs: 0,
       score: null,
+      scrollBlockingMs: 0,
       tier: null,
       totalBlockingMs: 0,
       verdict: "unavailable",
@@ -161,9 +183,11 @@ export const combineFrameTiming = (
     (a.score ?? 0) <= (b.score ?? 0) ? a : b
   );
   return {
+    loadBlockingMs: Math.max(...present.map((r) => r.loadBlockingMs)),
     loafEntryCount: present.reduce((sum, r) => sum + r.loafEntryCount, 0),
     maxFrameMs: Math.max(...present.map((r) => r.maxFrameMs)),
     score: worst.score,
+    scrollBlockingMs: Math.max(...present.map((r) => r.scrollBlockingMs)),
     tier: worst.tier,
     totalBlockingMs: Math.max(...present.map((r) => r.totalBlockingMs)),
     verdict: worst.verdict,

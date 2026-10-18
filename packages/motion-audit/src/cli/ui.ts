@@ -351,14 +351,20 @@ export const renderTerminalReport = (
     );
   }
 
-  // Measured result first: this is the number recorded by the browser's own frame
-  // timing. The model grade follows, explicitly labelled as an inference.
+  // Measured result first: the number recorded by the browser's own frame timing,
+  // restricted to the interaction phase. The model grade follows, labelled as an
+  // inference.
   const ft = report.frameTiming;
   log.step(
     ft.score === null
-      ? `${pc.bold("Measured Blocking:")} ${pc.dim("unavailable in this browser")}`
-      : `${pc.bold("Measured Blocking:")} ${badgeTier(ft.tier ?? "F")} ${colorTier(ft.tier ?? "F")} — ${pc.bold(String(ft.score))}/100 (${ft.verdict}) · ${ft.totalBlockingMs}ms past the 50ms LoAF threshold`
+      ? `${pc.bold("Measured Scroll Blocking:")} ${pc.dim("unavailable in this browser")}`
+      : `${pc.bold("Measured Scroll Blocking:")} ${badgeTier(ft.tier ?? "F")} ${colorTier(ft.tier ?? "F")} — ${pc.bold(String(ft.score))}/100 (${ft.verdict}) · ${ft.scrollBlockingMs}ms past the 50ms LoAF threshold while scrolling`
   );
+  if (ft.loadBlockingMs > 0) {
+    log.step(
+      `${pc.dim("  (page load blocked ")}${ft.loadBlockingMs}ms${pc.dim(", excluded — not motion)")}`
+    );
+  }
   log.step(
     `${pc.dim("Model Grade:")} ${badgeTier(report.overallTier)} ${colorTier(report.overallTier)} — ${pc.bold(report.overallScore.toString())}/100 ${pc.dim("(inferred)")}`
   );

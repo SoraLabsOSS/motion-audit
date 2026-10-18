@@ -35,6 +35,7 @@ import type {
   AnimationKind,
   CapturedAnimation,
   CdpLayer,
+  LoafFrameEntry,
   LongAnimationFrameTelemetry,
   Tier,
   ViewportAuditResult,
@@ -122,9 +123,10 @@ interface InpageMotionAuditApi {
   };
   getJsAnimations: () => TelemetryAnimation[];
   getAccumulatedWaapiAnimations?: () => TelemetryAnimation[];
+  markInteractionStart?: () => number;
   getLongAnimationFrameData: () => {
     supported: boolean;
-    entries: { duration: number; blockingDuration: number }[];
+    entries: LoafFrameEntry[];
   };
   getWaapiAnimationFrames: () => AnimationFrameSample[];
   getScrollPhaseData: () => {
@@ -606,6 +608,11 @@ export class BrowserRunner {
 
       // Smooth scroll down and up to trigger scroll animations and runtime promotions
       onProgress?.(`Simulating scroll interaction on ${viewport.label}...`);
+      // Everything recorded from here on is motion; everything before was load.
+      const interactionStartMs = await page.evaluate(() => {
+        const api = window.__MOTION_AUDIT__;
+        return api?.markInteractionStart ? api.markInteractionStart() : null;
+      });
       await page.evaluate(async () => {
         // oxlint-disable-next-line unicorn/consistent-function-scoping
         const delay = (ms: number) =>
@@ -614,17 +621,20 @@ export class BrowserRunner {
             setTimeout(resolve, ms);
           });
 
+        // ~1300px/s in both directions, inside the range a real wheel or trackpad flick
+        // produces. The previous 3200px/s down and 10700px/s up self-inflicted
+        // jank on every page and inflated the measured blocking budget.
         const distance = Math.min(document.body.scrollHeight, 2500);
         const step = 80;
         for (let y = 0; y <= distance; y += step) {
           window.scrollTo(0, y);
           // eslint-disable-next-line no-await-in-loop
-          await delay(25);
+          await delay(60);
         }
         for (let y = distance; y >= 0; y -= step * 2) {
           window.scrollTo(0, y);
           // eslint-disable-next-line no-await-in-loop
-          await delay(15);
+          await delay(120);
         }
       });
 
@@ -1078,16 +1088,36 @@ export class BrowserRunner {
       let maxDurationMs = 0;
       let totalDurationMs = 0;
       let totalBlockingDurationMs = 0;
+      let interactionBlockingMs = 0;
       for (const entry of telemetry.longAnimationFrames.entries) {
         if (entry.duration > maxDurationMs) {
           maxDurationMs = entry.duration;
         }
         totalDurationMs += entry.duration;
         totalBlockingDurationMs += entry.blockingDuration;
+        if (
+          interactionStartMs !== null &&
+          entry.startTime >= interactionStartMs
+        ) {
+          interactionBlockingMs += entry.blockingDuration;
+        }
       }
+
+      // An unmarked run cannot be split, so fall back to the whole-run total
+      // rather than silently reporting zero motion blocking.
+      const interactionMs =
+        interactionStartMs === null
+          ? totalBlockingDurationMs
+          : interactionBlockingMs;
 
       const longAnimationFrameTelemetry: LongAnimationFrameTelemetry = {
         entryCount: telemetry.longAnimationFrames.entries.length,
+        interactionBlockingMs: interactionMs,
+        interactionStartMs,
+        loadBlockingMs:
+          interactionStartMs === null
+            ? 0
+            : totalBlockingDurationMs - interactionMs,
         maxDurationMs,
         supported: telemetry.longAnimationFrames.supported,
         totalBlockingDurationMs,

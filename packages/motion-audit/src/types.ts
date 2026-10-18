@@ -67,12 +67,24 @@ export interface CapturedScroll {
   jsCount?: number;
 }
 
+export interface LoafFrameEntry {
+  startTime: number;
+  duration: number;
+  blockingDuration: number;
+}
+
 export interface LongAnimationFrameTelemetry {
   supported: boolean;
   entryCount: number;
   totalDurationMs: number;
   maxDurationMs: number;
   totalBlockingDurationMs: number;
+  /** Timestamp of the first simulated interaction, null if never marked. */
+  interactionStartMs?: number | null;
+  /** Blocking accumulated during the interaction (scroll) phase only. */
+  interactionBlockingMs?: number;
+  /** Blocking accumulated before interaction, i.e. page load. */
+  loadBlockingMs?: number;
 }
 
 export type {

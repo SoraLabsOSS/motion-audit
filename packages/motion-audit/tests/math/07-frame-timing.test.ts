@@ -109,3 +109,45 @@ test("Frame Timing Math: Worst viewport wins, unmeasured viewports are ignored",
   assert.equal(combineFrameTiming(missing).verdict, "unavailable");
   assert.equal(combineFrameTiming().score, null);
 });
+
+test("Frame Timing Math: Page-load blocking is excluded from the motion score", () => {
+  // A page that blocks hard while hydrating but scrolls cleanly must not be
+  // penalised for motion it never had.
+  const hydrationOnly = evaluateMeasuredFrameTiming({
+    entryCount: 1,
+    interactionBlockingMs: 0,
+    loadBlockingMs: 211,
+    maxDurationMs: 269,
+    supported: true,
+    totalBlockingDurationMs: 211,
+  });
+  assert.equal(hydrationOnly.scrollBlockingMs, 0);
+  assert.equal(hydrationOnly.loadBlockingMs, 211);
+  assert.equal(hydrationOnly.totalBlockingMs, 211);
+  assert.equal(hydrationOnly.score, 100);
+  assert.equal(hydrationOnly.verdict, "clean");
+
+  // Same load cost plus real scroll blocking: only the scroll part counts.
+  const mixed = evaluateMeasuredFrameTiming({
+    entryCount: 2,
+    interactionBlockingMs: 140,
+    loadBlockingMs: 211,
+    maxDurationMs: 291,
+    supported: true,
+    totalBlockingDurationMs: 351,
+  });
+  assert.equal(mixed.scrollBlockingMs, 140);
+  assert.equal(mixed.score, interpolateBlockingBudget(140));
+  assert.equal(mixed.verdict, "degraded");
+
+  // An unmarked run cannot be split, so it falls back to the whole-run total
+  // rather than silently reporting a clean page.
+  const unmarked = evaluateMeasuredFrameTiming({
+    entryCount: 1,
+    supported: true,
+    totalBlockingDurationMs: 211,
+  });
+  assert.equal(unmarked.scrollBlockingMs, 211);
+  assert.equal(unmarked.score, interpolateBlockingBudget(211));
+  assert.equal(unmarked.loadBlockingMs, 0);
+});

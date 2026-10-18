@@ -28,12 +28,16 @@ export const INPAGE_INIT_SCRIPT = `
   let lastRafTimestamp = -1;
   let currentFrameRafCount = 0;
   let maxConcurrentRaf = 0;
+  let interactionStartMs = null;
 
   if (typeof PerformanceObserver === 'function') {
     try {
       const loafObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           longAnimationFrames.push({
+            // startTime is required to separate page-load frames from scroll-phase
+            // frames. Without it the two cannot be told apart after collection.
+            startTime: entry.startTime,
             duration: entry.duration,
             blockingDuration: entry.blockingDuration
           });
@@ -530,6 +534,14 @@ export const INPAGE_INIT_SCRIPT = `
         frameCount,
         maxConcurrentRaf: Math.max(1, maxConcurrentRaf)
       };
+    },
+    /**
+     * Marks the start of the scripted interaction phase. Frames recorded before
+     * this belong to page load and are not motion.
+     */
+    markInteractionStart() {
+      interactionStartMs = performance.now();
+      return interactionStartMs;
     },
     getLongAnimationFrameData() {
       return {
